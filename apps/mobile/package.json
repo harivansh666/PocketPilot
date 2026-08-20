@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "dependencies": {
     "@expo/ui": "~57.0.11",
+    "@expense-tracker/shared": "workspace:*",
     "@react-native-vector-icons/ionicons": "^13.1.2",
     "@react-navigation/bottom-tabs": "^7.18.16",
     "expo": "~57.0.14",
