@@ -1,0 +1,3 @@
+packages:
+  - "apps/*"
+  - "packages/*" # eh mera induvidual project hai.
