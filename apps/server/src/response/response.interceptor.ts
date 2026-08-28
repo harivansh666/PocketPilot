@@ -18,12 +18,15 @@ export interface ApiResponse<T> {
 }
 
 @Injectable()
-export class ResponseInterceptor<T> implements NestInterceptor<T, ApiResponse<T>> {
-  constructor(private readonly reflector: Reflector) { }
+export class ResponseInterceptor<T> implements NestInterceptor<
+  T,
+  ApiResponse<T>
+> {
+  private readonly reflector = new Reflector();
 
   intercept(
     context: ExecutionContext,
-    next: CallHandler,
+    next: CallHandler<T>,
   ): Observable<ApiResponse<T>> {
     const response = context.switchToHttp().getResponse<Response>();
     const handler = context.getHandler();
@@ -33,7 +36,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, ApiResponse<T>
       'Request successful';
 
     return next.handle().pipe(
-      map((data) => ({
+      map((data: T) => ({
         success: true,
         statusCode: response.statusCode,
         message,
