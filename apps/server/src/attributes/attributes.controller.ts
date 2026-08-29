@@ -4,10 +4,16 @@ import { ResponseMessage } from 'src/common/decorators/response.message.decorato
 
 @Controller('attributes')
 export class AttributesController {
-    constructor(private readonly attributesService: AttributesService) { }
-    @Get('create')
-    @ResponseMessage('Attribute created successfully generated')
-    async create() {
-        return this.attributesService.create();
-    }
+  constructor(private readonly attributesService: AttributesService) {}
+  @Get('create')
+  @ResponseMessage('Attribute created successfully generated')
+  create() {
+    return this.attributesService.create();
+  }
+
+  @Get('all')
+  @ResponseMessage('Attributes fetched successfully')
+  findAll() {
+    return this.attributesService.findAll();
+  }
 }
