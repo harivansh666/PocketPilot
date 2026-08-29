@@ -10,7 +10,7 @@ export class AttributesService {
     // For now return the received body for verification
     return { id: 1, name: 'Sample Attribute' };
   }
-  async findAll() {
-    await this.attributesRepo.findAll();
+  findAll() {
+    this.attributesRepo.findAll();
   }
 }
