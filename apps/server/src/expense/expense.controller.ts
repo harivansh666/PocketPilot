@@ -1,7 +1,15 @@
-import { Body, Controller, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { ResponseMessage } from 'src/common/decorators/response.message.decorators';
 import { type CreateExpenseTransaction } from './expense.schema';
 import { ExpenseService } from './expense.service';
+import { CreateExpenseDto } from './dto/create-expense.dto';
 
 @Controller('expense')
 export class ExpenseController {
@@ -15,8 +23,8 @@ export class ExpenseController {
   @Patch('update/:id')
   @ResponseMessage('Expense updated successfully')
   updateExpense(
-    @Body() data: Omit<CreateExpenseTransaction, 'lastBalance'>,
-    @Param('id') id: string,
+    @Body() data: CreateExpenseDto,
+    @Param('id', ParseIntPipe) id: string,
   ) {
     return this.expenseService.updateExpense(data, id);
   }

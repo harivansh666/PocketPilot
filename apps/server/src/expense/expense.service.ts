@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { type CreateExpenseTransaction } from './expense.schema';
 import { ExpenseRepository } from './expense.repository';
+import { CreateExpenseDto } from './dto/create-expense.dto';
 
 @Injectable()
 export class ExpenseService {
@@ -8,10 +9,7 @@ export class ExpenseService {
   async addExpense(data: Omit<CreateExpenseTransaction, 'lastBalance'>) {
     return await this.expenseRepo.addExpenseRecord(data);
   }
-  async updateExpense(
-    data: Omit<CreateExpenseTransaction, 'lastBalance'>,
-    id: string,
-  ) {
+  async updateExpense(data: CreateExpenseDto, id: string) {
     return await this.expenseRepo.updateExpenseRecord(data, id);
   }
 }

@@ -1,4 +1,9 @@
-import { IsDateString, IsNumber, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsDate, IsIn, IsNumber, IsOptional, IsString } from 'class-validator';
+import { type CreateExpenseTransaction } from '../expense.schema';
+
+type ExpenseCategory = CreateExpenseTransaction['category'];
+
 export class CreateExpenseDto {
   @IsNumber()
   userId!: number;
@@ -6,8 +11,8 @@ export class CreateExpenseDto {
   @IsNumber()
   amount!: number;
 
-  @IsString()
-  category!: string;
+  @IsIn(['Income', 'Petrol', 'Food', 'Vegitables', 'Others'])
+  category!: ExpenseCategory;
 
   @IsOptional()
   @IsString()
@@ -17,9 +22,11 @@ export class CreateExpenseDto {
   @IsNumber()
   lastBalance?: number;
 
-  @IsDateString()
-  date!: string;
+  @Type(() => Date)
+  @IsDate()
+  date!: Date;
 
-  @IsDateString()
-  spentAt!: string;
+  @Type(() => Date)
+  @IsDate()
+  spentAt!: Date;
 }
