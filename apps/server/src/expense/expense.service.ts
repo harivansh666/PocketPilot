@@ -8,4 +8,10 @@ export class ExpenseService {
   async addExpense(data: Omit<CreateExpenseTransaction, 'lastBalance'>) {
     return await this.expenseRepo.addExpenseRecord(data);
   }
+  async updateExpense(
+    data: Omit<CreateExpenseTransaction, 'lastBalance'>,
+    id: string,
+  ) {
+    return await this.expenseRepo.updateExpenseRecord(data, id);
+  }
 }
