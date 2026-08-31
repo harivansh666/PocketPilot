@@ -6,6 +6,7 @@ import { ResponseInterceptor } from './response/response.interceptor';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.enableCors();
   app.useGlobalInterceptors(new ResponseInterceptor());
 
   app.setGlobalPrefix('api');
@@ -17,6 +18,6 @@ async function bootstrap() {
     }),
   );
 
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }
 bootstrap();

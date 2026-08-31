@@ -9,6 +9,8 @@ export class AttributesRepo {
       .returning({ id: Attribute.id, name: Attribute.name });
   }
   async findAll(): Promise<{ id: string; name: string }[]> {
-    return await db.select().from(Attribute);
+    return await db
+      .select({ id: Attribute.id, name: Attribute.name })
+      .from(Attribute);
   }
 }

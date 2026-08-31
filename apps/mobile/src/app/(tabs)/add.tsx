@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
@@ -13,12 +13,15 @@ import {
 import { router } from "expo-router";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useExpenseStore } from "@/store/useExpenseStore";
 
 const categories = [
   { label: "Rent", icon: "home", color: "#F87171" },
   { label: "Food", icon: "restaurant", color: "#4ADE80" },
   { label: "Petrol", icon: "car", color: "#FBBF24" },
   { label: "Personal", icon: "card", color: "#A78BFA" },
+  { label: "Personal", icon: "card", color: "#A78BFA" },
+
 ];
 
 export default function AddScreen() {
@@ -30,6 +33,10 @@ export default function AddScreen() {
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [yearPickerVisible, setYearPickerVisible] = useState(false);
+
+  const { category, getCategory } = useExpenseStore();
+
+  useEffect(() => { getCategory() }, []);
 
   const numericAmount = Number(amount) || 0;
   const isValid = numericAmount > 0;
@@ -104,12 +111,20 @@ export default function AddScreen() {
 
         <Text style={styles.sectionTitle}>Category</Text>
         <View style={styles.categoryGrid}>
-          {categories.map((category) => {
-            const isSelected = selectedCategory === category.label;
+          {(Array.isArray(category) && category.length > 0
+            ? category.map((cat: any) => ({
+                label: cat.name || cat.label || "Category",
+                icon: cat.icon || "pricetag-outline",
+                color: cat.color || "#4ADE80",
+              }))
+            : categories
+          ).map((cat: any, index: number) => {
+            const label = cat.label;
+            const isSelected = selectedCategory === label;
             return (
               <TouchableOpacity
-                key={category.label}
-                onPress={() => setSelectedCategory(category.label)}
+                key={cat.id || `${label}-${index}`}
+                onPress={() => setSelectedCategory(label)}
                 style={[
                   styles.categoryCard,
                   isSelected && styles.selectedCategory,
@@ -118,13 +133,13 @@ export default function AddScreen() {
                 <View
                   style={[
                     styles.categoryIcon,
-                    { backgroundColor: `${category.color}22` },
+                    { backgroundColor: `${cat.color}22` },
                   ]}
                 >
                   <Ionicons
-                    name={category.icon as any}
+                    name={cat.icon as any}
                     size={20}
-                    color={category.color}
+                    color={cat.color}
                   />
                 </View>
                 <Text
@@ -133,7 +148,7 @@ export default function AddScreen() {
                     isSelected && styles.selectedCategoryText,
                   ]}
                 >
-                  {category.label}
+                  {label}
                 </Text>
                 {isSelected && (
                   <Ionicons name="checkmark-circle" size={18} color="#22C55E" />
