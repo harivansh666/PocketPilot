@@ -6,9 +6,8 @@ import { AttributeInsert } from './Attribute.schema';
 export class AttributesService {
   constructor(private readonly attributesRepo: AttributesRepo) {}
 
-  create(data: AttributeInsert) {
-    this.attributesRepo.create(data);
-    return { id: 1, name: 'Sample Attribute' };
+  async create(data: AttributeInsert) {
+    return await this.attributesRepo.create(data);
   }
   async findAll(): Promise<{ id: string; name: string }[]> {
     return await this.attributesRepo.findAll();

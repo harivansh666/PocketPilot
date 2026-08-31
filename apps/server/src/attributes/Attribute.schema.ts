@@ -1,19 +1,11 @@
 import { InferInsertModel, InferSelectModel } from 'drizzle-orm';
-import { pgEnum, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
-import { pgTable } from 'drizzle-orm/pg-core';
+import { pgEnum, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 
-const AttrubuteType = pgEnum('attribute_type', [
-  'Income',
-  'Petrol',
-  'Food',
-  'Vegitables',
-  'Others',
-]);
+const AttrubuteType = pgEnum('attribute_type', ['Expense', 'Budget']);
 
 const Attribute = pgTable('attributes', {
-  id: uuid('uuid').primaryKey(),
+  id: uuid('uuid').primaryKey().defaultRandom(),
   name: varchar('name').notNull(),
-
   type: AttrubuteType('type').notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),

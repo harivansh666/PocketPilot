@@ -5,7 +5,7 @@ export class AttributesRepo {
   async create(data: AttributeInsert) {
     await db
       .insert(Attribute)
-      .values(data)
+      .values({ name: data.name, type: data.type })
       .returning({ id: Attribute.id, name: Attribute.name });
   }
   async findAll(): Promise<{ id: string; name: string }[]> {

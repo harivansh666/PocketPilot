@@ -1,12 +1,12 @@
 import { InferInsertModel } from 'drizzle-orm';
 import { integer, text, timestamp } from 'drizzle-orm/pg-core';
 import { pgTable, uuid } from 'drizzle-orm/pg-core';
-import { AttrubuteType } from 'src/attributes/Attribute.schema';
+import { AttrubuteType } from '../attributes/Attribute.schema';
 
 export const BudgetSettings = pgTable('budget_settings', {
   id: uuid('uuid').primaryKey().defaultRandom(),
   userId: integer('user_id').notNull(),
-  type: AttrubuteType('category').notNull(),
+  type: AttrubuteType('type').notNull(),
   amount: integer('amount').notNull(),
   limit: integer('limit').notNull(),
   createdAt: timestamp('created_at').defaultNow(),
