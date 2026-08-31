@@ -25,6 +25,8 @@ export const ExpenseTransactions = pgTable('expense_transactions', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
-export type CreateExpenseTransaction = InferInsertModel<typeof ExpenseTransactions>;
+export type CreateExpenseTransaction = InferInsertModel<
+  typeof ExpenseTransactions
+>;
 
 export type CreateBudgetSettings = InferInsertModel<typeof BudgetSettings>;

@@ -7,7 +7,7 @@ import {
   Post,
 } from '@nestjs/common';
 import { ResponseMessage } from 'src/common/decorators/response.message.decorators';
-import { type CreateExpenseTransaction } from './expense.schema';
+import { type CreateBudgetSettings } from './expense.schema';
 import { ExpenseService } from './expense.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 
@@ -16,7 +16,7 @@ export class ExpenseController {
   constructor(private readonly expenseService: ExpenseService) {}
   @Post('add')
   @ResponseMessage('Expense added successfully')
-  addExpense(@Body() data: Omit<CreateExpenseTransaction, 'lastBalance'>) {
+  addExpense(@Body() data: CreateExpenseDto) {
     return this.expenseService.addExpense(data);
   }
 
@@ -27,5 +27,11 @@ export class ExpenseController {
     @Param('id', ParseIntPipe) id: string,
   ) {
     return this.expenseService.updateExpense(data, id);
+  }
+
+  @Post('add-budget')
+  @ResponseMessage('Budget added successfully')
+  addBudget(@Body() data: CreateBudgetSettings) {
+    return this.expenseService.addBudget(data);
   }
 }
