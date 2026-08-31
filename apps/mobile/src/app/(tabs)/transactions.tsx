@@ -22,7 +22,8 @@ type Transaction = {
   color: string;
 };
 
-const filters = ["All", "Rent", "Food", "Petrol", "Personal"];
+
+
 const transactions: Transaction[] = [
   {
     id: "rent",
@@ -75,10 +76,11 @@ export default function TransactionsScreen() {
   const insets = useSafeAreaInsets();
   const [selectedFilter, setSelectedFilter] = useState("All");
   const [refreshing, setRefreshing] = useState(false);
-  const { getExpence } = useExpenseStore();
+  const { getExpence, getCategory, category, expenceData } = useExpenseStore();
 
   useEffect(() => {
     getExpence();
+    getCategory()
   }, []);
 
   const onRefresh = useCallback(async () => {
@@ -95,6 +97,12 @@ export default function TransactionsScreen() {
     selectedFilter === "All"
       ? transactions
       : transactions.filter((item) => item.category === selectedFilter);
+
+  const dynamicCategories = Array.isArray(category) && category.length > 0
+    ? category.map((cat: any) => (typeof cat === "string" ? cat : cat.name || cat.label || "")).filter(Boolean)
+    : ["Rent", "Food", "Petrol", "Personal"];
+
+  const filterOptions = ["All", ...Array.from(new Set(dynamicCategories))];
 
   return (
     <ScrollView
@@ -142,7 +150,7 @@ export default function TransactionsScreen() {
           <View
             style={[
               styles.summaryFill,
-              { width: `${(totalSpent / 10000) * 100}%` },
+              { width: `${Math.min((totalSpent / 10000) * 100, 100)}%` },
             ]}
           />
         </View>
@@ -156,25 +164,28 @@ export default function TransactionsScreen() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.filterRow}
       >
-        {filters.map((filter) => (
-          <TouchableOpacity
-            key={filter}
-            onPress={() => setSelectedFilter(filter)}
-            style={[
-              styles.filter,
-              selectedFilter === filter && styles.activeFilter,
-            ]}
-          >
-            <Text
+        {filterOptions.map((filter: string, index: number) => {
+          const isSelected = selectedFilter === filter;
+          return (
+            <TouchableOpacity
+              key={`${filter}-${index}`}
+              onPress={() => setSelectedFilter(filter)}
               style={[
-                styles.filterText,
-                selectedFilter === filter && styles.activeFilterText,
+                styles.filter,
+                isSelected && styles.activeFilter,
               ]}
             >
-              {filter}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text
+                style={[
+                  styles.filterText,
+                  isSelected && styles.activeFilterText,
+                ]}
+              >
+                {filter}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
 
       <View style={styles.listHeader}>
