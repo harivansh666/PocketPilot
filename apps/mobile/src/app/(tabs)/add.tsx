@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -33,10 +34,17 @@ export default function AddScreen() {
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [yearPickerVisible, setYearPickerVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const { category, getCategory } = useExpenseStore();
 
   useEffect(() => { getCategory() }, []);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await getCategory();
+    setRefreshing(false);
+  }, [getCategory]);
 
   const numericAmount = Number(amount) || 0;
   const isValid = numericAmount > 0;
@@ -77,6 +85,14 @@ export default function AddScreen() {
         }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#22C55E"
+            colors={["#22C55E"]}
+          />
+        }
       >
         <View style={styles.header}>
           <View>

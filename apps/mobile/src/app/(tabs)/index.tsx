@@ -1,4 +1,6 @@
+import { useCallback, useEffect, useState } from "react";
 import {
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -8,6 +10,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { router } from "expo-router";
+import { useExpenseStore } from "@/store/useExpenseStore";
 
 const TOTAL_BUDGET = 10000;
 const TOTAL_SPENT = 9000;
@@ -40,13 +43,34 @@ const categories = [
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const [refreshing, setRefreshing] = useState(false);
+  const { getExpence, getCategory } = useExpenseStore();
   const progress = Math.min((TOTAL_SPENT / TOTAL_BUDGET) * 100, 100);
+
+  useEffect(() => {
+    getExpence();
+    getCategory();
+  }, []);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([getExpence(), getCategory()]);
+    setRefreshing(false);
+  }, [getExpence, getCategory]);
 
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: 40 }}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor="#22C55E"
+          colors={["#22C55E"]}
+        />
+      }
     >
       {/* Header */}
       <View style={styles.header}>

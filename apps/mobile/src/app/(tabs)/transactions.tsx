@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -9,6 +10,7 @@ import {
 import { router } from "expo-router";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useExpenseStore } from "@/store/useExpenseStore";
 
 type Transaction = {
   id: string;
@@ -72,6 +74,19 @@ const transactions: Transaction[] = [
 export default function TransactionsScreen() {
   const insets = useSafeAreaInsets();
   const [selectedFilter, setSelectedFilter] = useState("All");
+  const [refreshing, setRefreshing] = useState(false);
+  const { getExpence } = useExpenseStore();
+
+  useEffect(() => {
+    getExpence();
+  }, []);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await getExpence();
+    setRefreshing(false);
+  }, [getExpence]);
+
   const totalSpent = transactions.reduce(
     (total, item) => total + item.amount,
     0,
@@ -89,6 +104,14 @@ export default function TransactionsScreen() {
         paddingBottom: 110,
       }}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor="#22C55E"
+          colors={["#22C55E"]}
+        />
+      }
     >
       <View style={styles.header}>
         <View>
