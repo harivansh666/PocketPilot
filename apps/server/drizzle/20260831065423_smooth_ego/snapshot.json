@@ -2,18 +2,10 @@
   "version": "8",
   "dialect": "postgres",
   "id": "ec85368d-c695-4d31-ad02-02d51cfe808a",
-  "prevIds": [
-    "00000000-0000-0000-0000-000000000000"
-  ],
+  "prevIds": ["00000000-0000-0000-0000-000000000000"],
   "ddl": [
     {
-      "values": [
-        "INCOME",
-        "PETROL",
-        "FOOD",
-        "VEGETABLES",
-        "OTHERS"
-      ],
+      "values": ["INCOME", "PETROL", "FOOD", "VEGETABLES", "OTHERS"],
       "name": "attribute_type",
       "entityType": "enums",
       "schema": "public"
@@ -90,9 +82,7 @@
       "table": "attributes"
     },
     {
-      "columns": [
-        "uuid"
-      ],
+      "columns": ["uuid"],
       "nameExplicit": false,
       "name": "attributes_pkey",
       "schema": "public",

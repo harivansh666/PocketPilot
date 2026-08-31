@@ -3,11 +3,11 @@ import { pgEnum, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 import { pgTable } from 'drizzle-orm/pg-core';
 
 const AttrubuteType = pgEnum('attribute_type', [
-  'INCOME',
-  'PETROL',
-  'FOOD',
-  'VEGETABLES',
-  'OTHERS',
+  'Income',
+  'Petrol',
+  'Food',
+  'Vegitables',
+  'Others',
 ]);
 
 const Attribute = pgTable('attributes', {

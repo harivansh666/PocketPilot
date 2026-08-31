@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AttributesRepo } from './attributes.repo';
+import { AttributesRepo } from './attributes.repository';
 import { AttributeInsert } from './Attribute.schema';
 
 @Injectable()

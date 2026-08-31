@@ -6,7 +6,6 @@ export class AppService {
     return 'Hello World!';
   }
   async create(data) {
-    await this.create(data)
-
+    await this.create(data);
   }
 }

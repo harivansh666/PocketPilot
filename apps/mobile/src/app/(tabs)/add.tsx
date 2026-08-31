@@ -36,7 +36,7 @@ export default function AddScreen() {
 
   const saveExpense = () => {
     if (!isValid) return;
-    router.replace("/transactions");
+    router.back();
   };
 
   const formattedDate = date.toLocaleDateString("en-IN", {
