@@ -1,19 +1,20 @@
-import { Controller, Get } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { AttributesService } from './attributes.service';
 import { ResponseMessage } from 'src/common/decorators/response.message.decorators';
+import { type AttributeInsert } from './Attribute.schema';
 
 @Controller('attributes')
 export class AttributesController {
   constructor(private readonly attributesService: AttributesService) {}
-  @Get('create')
+  @Post('create')
   @ResponseMessage('Attribute created successfully generated')
-  create() {
-    return this.attributesService.create();
+  create(@Body() data: AttributeInsert) {
+    return this.attributesService.create(data);
   }
 
   @Get('all')
   @ResponseMessage('Attributes fetched successfully')
-  findAll() {
-    return this.attributesService.findAll();
+  async findAll() {
+    return await this.attributesService.findAll();
   }
 }

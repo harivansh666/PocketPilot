@@ -21,8 +21,8 @@ const Attribute = pgTable('attributes', {
 
 export { Attribute, AttrubuteType };
 
-export type Attribute = InferInsertModel<typeof Attribute>;
-export type AttributeInsert = InferSelectModel<typeof Attribute>;
+export type AttributeInsert = InferInsertModel<typeof Attribute>;
+export type AttributeType = InferSelectModel<typeof Attribute>;
 
 // InferSelectModel — jab DB se DATA NIKAAL rahe ho
 // InferInsertModel — jab DB se DATA INSERT KAR rahe ho

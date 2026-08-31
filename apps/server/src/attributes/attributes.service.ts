@@ -1,16 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { AttributesRepo } from './attributes.repo';
+import { AttributeInsert } from './Attribute.schema';
 
 @Injectable()
 export class AttributesService {
   constructor(private readonly attributesRepo: AttributesRepo) {}
 
-  create() {
-    // Implement the logic to create an attribute here
-    // For now return the received body for verification
+  create(data: AttributeInsert) {
+    this.attributesRepo.create(data);
     return { id: 1, name: 'Sample Attribute' };
   }
-  findAll() {
-    this.attributesRepo.findAll();
+  async findAll(): Promise<{ id: string; name: string }[]> {
+    return await this.attributesRepo.findAll();
   }
 }

@@ -1,7 +1,14 @@
+import db from 'src/db';
+import { Attribute, AttributeInsert } from './Attribute.schema';
+
 export class AttributesRepo {
-  findAll() {
-    return {
-      attributes: [],
-    };
+  async create(data: AttributeInsert) {
+    await db
+      .insert(Attribute)
+      .values(data)
+      .returning({ id: Attribute.id, name: Attribute.name });
+  }
+  async findAll(): Promise<{ id: string; name: string }[]> {
+    return await db.select().from(Attribute);
   }
 }

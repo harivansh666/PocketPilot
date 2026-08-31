@@ -6,7 +6,10 @@
   "scripts": {
     "dev:server": "pnpm --filter @apps/server run dev",
     "dev:mobile": "pnpm --filter @apps/mobile run dev",
-    "dev": "concurrently \"pnpm:dev:api\" \"pnpm:dev:mobile\"",
+    "dev": "concurrently \"pnpm:dev:server\" \"pnpm:dev:mobile\"",
+    "db:generate": "pnpm --filter @apps/server run db:generate",
+    "db:migrate": "pnpm --filter @apps/server run db:migrate",
+    "db:studio": "pnpm --filter @apps/server run db:studio",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
