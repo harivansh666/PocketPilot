@@ -2,7 +2,7 @@
 declare module "axios";
 import axios from "axios";
 const axiosInstance = axios.create({
-    baseURL: process.env.EXPO_PUBLIC_API_URL,
+    baseURL: process.env.EXPO_MODE === "development" ? process.env.EXPO_PUBLIC_API_URL : process.env.EXPO_PUBLIC_API_URL_PRODUCTION,
     headers: {
         "Content-Type": "application/json",
     },
