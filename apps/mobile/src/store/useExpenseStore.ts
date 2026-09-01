@@ -1,8 +1,7 @@
 import axiosInstance from '@/lib/axios'
 import Toast from 'react-native-toast-message'
 import { create } from 'zustand'
-
-
+import { getCategoryIconAndColor } from '@/utils/categoryHelpers'
 
 type ExpenceState = {
     expenceData: any[]
@@ -31,8 +30,6 @@ export const useExpenseStore = create<ExpenceState>((set) => ({
                 type: 'success',
                 text1: 'Expense added successfully',
                 visibilityTime: 500,
-
-
             });
             set((state) => ({ expenceData: [...state.expenceData, newExpense] }));
         } catch (error) {
@@ -46,8 +43,18 @@ export const useExpenseStore = create<ExpenceState>((set) => ({
     getCategory: async () => {
         try {
             const response = await axiosInstance.get('/attributes/all');
-            set({ category: response.data?.data || response.data });
-
+            const rawCategories = response.data?.data || response.data || [];
+            const mappedCategories = (Array.isArray(rawCategories) ? rawCategories : []).map((cat: any) => {
+                const label = cat.name || cat.label || 'Unknown';
+                const { icon, color } = getCategoryIconAndColor(label);
+                return {
+                    ...cat,
+                    label,
+                    icon: cat.icon || icon,
+                    color: cat.color || color,
+                };
+            });
+            set({ category: mappedCategories });
         } catch (error) {
             console.error('Error fetching categories:', error);
             Toast.show({
