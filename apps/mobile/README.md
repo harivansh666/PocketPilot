@@ -59,3 +59,5 @@ Join our community of developers creating universal apps.
 <!-- eas update --channel production --message "Fix expense screen" -->
 
 <!-- eas update --auto -->
+
+<!-- eas update --branch preview -->
