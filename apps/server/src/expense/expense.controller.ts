@@ -7,7 +7,7 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { ResponseMessage } from 'src/common/decorators/response.message.decorators';
+import { ResponseMessage } from '../common/decorators/response.message.decorators';
 import { type CreateBudgetSettings } from './expense.schema';
 import { ExpenseService } from './expense.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';

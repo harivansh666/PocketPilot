@@ -3,7 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Response } from 'express';
-import { RESPONSE_MESSAGE_KEY } from 'src/common/decorators/response.message.decorators';
+import { RESPONSE_MESSAGE_KEY } from '../common/decorators/response.message.decorators';
 
 export interface ApiResponse<T> {
   success: boolean;

@@ -1,4 +1,4 @@
-import db from 'src/db';
+import db from '../db';
 import { Attribute, AttributeInsert } from './Attribute.schema';
 
 export class AttributesRepo {

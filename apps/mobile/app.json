@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "PocketPilot",
+    "name": "Pocket Pilot",
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -29,9 +29,9 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "backgroundColor": "#0B1120",
+          "image": "./assets/images/Untitled.png",
+          "imageWidth": 200
         }
       ],
       "@react-native-vector-icons/ionicons"

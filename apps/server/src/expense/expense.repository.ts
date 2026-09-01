@@ -1,4 +1,4 @@
-import db from 'src/db';
+import db from '../db';
 import { desc, eq, sql, sum } from 'drizzle-orm';
 
 import {

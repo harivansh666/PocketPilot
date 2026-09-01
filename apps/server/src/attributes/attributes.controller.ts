@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { AttributesService } from './attributes.service';
-import { ResponseMessage } from 'src/common/decorators/response.message.decorators';
+import { ResponseMessage } from '../common/decorators/response.message.decorators';
 import { type AttributeInsert } from './Attribute.schema';
 
 @Controller('attributes')
