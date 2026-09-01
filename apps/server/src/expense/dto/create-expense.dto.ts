@@ -14,6 +14,9 @@ export class CreateExpenseDto {
   @IsIn(['Expense', 'Budget'])
   category!: ExpenseCategory;
 
+  @IsString()
+  type!: string;
+
   @IsOptional()
   @IsString()
   note?: string;

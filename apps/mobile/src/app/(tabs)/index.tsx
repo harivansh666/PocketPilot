@@ -11,52 +11,70 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { router } from "expo-router";
 import { useExpenseStore } from "@/store/useExpenseStore";
-
-const TOTAL_BUDGET = 10000;
-const TOTAL_SPENT = 9000;
-const REMAINING = TOTAL_BUDGET - TOTAL_SPENT;
-
-const categories = [
-  {
-    name: "Room Rent",
-    icon: "home",
-    budget: 6000,
-    spent: 6000,
-    color: "#F87171",
-  },
-  { name: "Petrol", icon: "car", budget: 1500, spent: 300, color: "#FBBF24" },
-  {
-    name: "Vegetables",
-    icon: "nutrition",
-    budget: 1500,
-    spent: 600,
-    color: "#4ADE80",
-  },
-  {
-    name: "Personal",
-    icon: "card",
-    budget: 1000,
-    spent: 2100,
-    color: "#A78BFA",
-  },
-];
+import { getCategoryIconAndColor } from "@/utils/categoryHelpers";
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
-  const { getExpence, getCategory } = useExpenseStore();
-  const progress = Math.min((TOTAL_SPENT / TOTAL_BUDGET) * 100, 100);
+  const { getExpence, getCategory, getDashboard, dashboardData } = useExpenseStore();
 
   useEffect(() => {
+    getDashboard();
     getExpence();
     getCategory();
   }, []);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([getExpence(), getCategory()]);
+    await Promise.all([getDashboard(), getExpence(), getCategory()]);
     setRefreshing(false);
-  }, [getExpence, getCategory]);
+  }, [getDashboard, getExpence, getCategory]);
+
+  const categoriesData = dashboardData?.categories;
+  const categories =
+    categoriesData && Array.isArray(categoriesData)
+      ? categoriesData.map((cat: any) => {
+        const rawName = cat.type || cat.name || cat.category || "Uncategorized";
+        const name = (rawName === "Expense" || rawName === "Income") && cat.type && cat.type !== rawName ? cat.type : rawName;
+        const budget = Number(cat.budget) || 0;
+        const spent = Number(cat.spent) || 0;
+        const { icon, color } = getCategoryIconAndColor(name);
+        return {
+          name,
+          icon,
+          budget,
+          spent,
+          color,
+        };
+      })
+      : [];
+
+  const categoryTotalBudget = categories.reduce((sum, item) => sum + item.budget, 0);
+  const categoryTotalSpent = categories.reduce((sum, item) => sum + item.spent, 0);
+
+  const expenceSettings = dashboardData?.expence;
+  const overallBudgetInfo =
+    expenceSettings && Array.isArray(expenceSettings) && expenceSettings[0]
+      ? expenceSettings[0]
+      : null;
+
+  const totalBudget =
+    categoryTotalBudget > 0
+      ? categoryTotalBudget
+      : Number(overallBudgetInfo?.totalBudget) || 0;
+
+  const totalSpent =
+    overallBudgetInfo?.totalSpent !== undefined
+      ? Number(overallBudgetInfo.totalSpent)
+      : categoryTotalSpent;
+
+  const remaining =
+    overallBudgetInfo?.remaining !== undefined
+      ? Number(overallBudgetInfo.remaining)
+      : totalBudget - totalSpent;
+
+  const progress = totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0;
+  const monthTitle = `${new Date().toLocaleString("en-US", { month: "long" })} Budget`;
 
   return (
     <ScrollView
@@ -76,7 +94,7 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Hello, Harivansh</Text>
-          <Text style={styles.title}>March Budget</Text>
+          <Text style={styles.title}>{monthTitle}</Text>
         </View>
         <TouchableOpacity
           style={styles.avatarCircle}
@@ -91,7 +109,7 @@ export default function HomeScreen() {
       <View style={styles.heroCard}>
         <Text style={styles.heroLabel}>REMAINING BALANCE</Text>
         <Text style={styles.heroAmount}>
-          ₹{REMAINING.toLocaleString("en-IN")}
+          ₹{remaining.toLocaleString("en-IN")}
         </Text>
 
         <View style={styles.progressBg}>
@@ -104,7 +122,7 @@ export default function HomeScreen() {
             <Text style={styles.heroFooterText}>
               Spent{" "}
               <Text style={styles.heroFooterValue}>
-                ₹{TOTAL_SPENT.toLocaleString("en-IN")}
+                ₹{totalSpent.toLocaleString("en-IN")}
               </Text>
             </Text>
           </View>
@@ -118,12 +136,26 @@ export default function HomeScreen() {
         <Text style={styles.sectionCount}>{categories.length} active</Text>
       </View>
 
+      {/* Empty State when zero categories exist */}
+      {categories.length === 0 && (
+        <View style={styles.emptyCard}>
+          <Ionicons name="receipt-outline" size={32} color="#64748B" />
+          <Text style={styles.emptyText}>No category expenses found yet</Text>
+          <TouchableOpacity
+            style={styles.emptyButton}
+            onPress={() => router.push("/expense/add" as any)}
+          >
+            <Text style={styles.emptyButtonText}>+ Add Expense</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Grid */}
       <View style={styles.grid}>
         {categories.map((item) => {
           const left = item.budget - item.spent;
           const isOver = left < 0;
-          const width = Math.min((item.spent / item.budget) * 100, 100);
+          const width = item.budget > 0 ? Math.min((item.spent / item.budget) * 100, 100) : 0;
 
           return (
             <TouchableOpacity
@@ -370,5 +402,37 @@ const styles = StyleSheet.create({
   gridSub: {
     color: "#64748B",
     fontSize: 11,
+  },
+
+  emptyCard: {
+    backgroundColor: "#151E32",
+    borderRadius: 16,
+    padding: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#1F2A44",
+    marginBottom: 20,
+  },
+
+  emptyText: {
+    color: "#94A3B8",
+    fontSize: 14,
+    marginTop: 10,
+    marginBottom: 14,
+    fontWeight: "500",
+  },
+
+  emptyButton: {
+    backgroundColor: "#22C55E",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+
+  emptyButtonText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "700",
   },
 });

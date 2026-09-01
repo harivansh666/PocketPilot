@@ -5,7 +5,7 @@ import { CreateExpenseDto } from './dto/create-expense.dto';
 
 @Injectable()
 export class ExpenseService {
-  constructor(private readonly expenseRepo: ExpenseRepository) {}
+  constructor(private readonly expenseRepo: ExpenseRepository) { }
   async addExpense(data: CreateExpenseDto) {
     return await this.expenseRepo.addExpenseRecord(data);
   }
@@ -14,5 +14,8 @@ export class ExpenseService {
   }
   async addBudget(data: CreateBudgetSettings) {
     return await this.expenseRepo.addBudgetRecord(data);
+  }
+  async getDashboard() {
+    return await this.expenseRepo.getDashboardRecord();
   }
 }

@@ -60,15 +60,12 @@ export default function AddScreen() {
     if (!isValid || isSaving) return;
     setIsSaving(true);
 
-    const finalNote = expense.note
-      ? `${expense.selectedCategory} - ${expense.note}`
-      : expense.selectedCategory;
-
     const success = await addExpence({
       userId: 1,
       amount: numericAmount,
       category: "Expense",
-      note: finalNote,
+      type: expense.selectedCategory,
+      note: expense.note,
       lastBalance: expense.lastbalance ? Number(expense.lastbalance) : 0,
       date: expense.date,
       spentAt: expense.date,

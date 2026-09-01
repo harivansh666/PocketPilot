@@ -7,17 +7,20 @@ type ExpenceState = {
     expenceData: any[]
     category: any[]
     budgetData: any[]
+    dashboardData: { expence?: any[]; categories?: any[] } | null
     getExpence: () => Promise<void>
     addExpence: (data: any) => Promise<boolean>
     getCategory: () => Promise<void>
     addCategory: (data: { name: string; type?: 'Expense' | 'Budget' }) => Promise<boolean>
     addBudget: (data: any) => Promise<boolean>
+    getDashboard: () => Promise<void>
 }
 
 export const useExpenseStore = create<ExpenceState>((set) => ({
     expenceData: [],
     category: [],
     budgetData: [],
+    dashboardData: null,
     getExpence: async () => {
         try {
             const response = await axiosInstance.get('/expense/all');
@@ -133,6 +136,18 @@ export const useExpenseStore = create<ExpenceState>((set) => ({
                 console.error('Error response data:', error.response.data);
             }
             return false;
+        }
+    },
+
+    getDashboard: async () => {
+        try {
+            const response = await axiosInstance.get('/expense/get-dashboard');
+            const data = response.data?.data || response.data;
+            console.log('dashboardData::', data)
+            set({ dashboardData: data });
+
+        } catch (error) {
+            console.error('Error fetching dashboard:', error);
         }
     }
 }))

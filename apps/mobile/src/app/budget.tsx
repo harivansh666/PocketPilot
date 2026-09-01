@@ -16,23 +16,11 @@ import Ionicons from "@react-native-vector-icons/ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useExpenseStore } from "@/store/useExpenseStore";
 
-const fallbackCategories = [
-  { label: "Room rent", icon: "home", color: "#F87171", initial: "6000" },
-  {
-    label: "Food & vegetables",
-    icon: "restaurant",
-    color: "#4ADE80",
-    initial: "1500",
-  },
-  { label: "Bike petrol", icon: "car", color: "#FBBF24", initial: "1000" },
-  { label: "Personal", icon: "card", color: "#A78BFA", initial: "700" },
-];
-
 export default function BudgetScreen() {
   const insets = useSafeAreaInsets();
-  const { addBudget, category: storeCategories, getCategory, addCategory } = useExpenseStore();
+  const { addBudget, category: storeCategories, getCategory, addCategory, getDashboard, dashboardData } = useExpenseStore();
 
-  const [monthlyBudget, setMonthlyBudget] = useState("10000");
+  const [monthlyBudget, setMonthlyBudget] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   // New Category Modal State
@@ -42,19 +30,39 @@ export default function BudgetScreen() {
 
   useEffect(() => {
     getCategory();
+    getDashboard();
   }, []);
+
+  useEffect(() => {
+    const savedTotalBudget = dashboardData?.expence?.[0]?.totalBudget;
+    if (savedTotalBudget && Number(savedTotalBudget) > 0) {
+      setMonthlyBudget(String(savedTotalBudget));
+    }
+  }, [dashboardData]);
 
   const activeCategories = useMemo(() => {
     if (Array.isArray(storeCategories) && storeCategories.length > 0) {
-      return storeCategories.map((c: any) => ({
-        label: c.label || c.name || "Category",
-        icon: c.icon || "pricetag",
-        color: c.color || "#4ADE80",
-        initial: "1000",
-      }));
+      const dashboardCategoriesMap = new Map();
+      if (Array.isArray(dashboardData?.categories)) {
+        dashboardData.categories.forEach((cat: any) => {
+          const key = cat.type || cat.name || cat.category;
+          if (key) dashboardCategoriesMap.set(key.toLowerCase(), Number(cat.budget) || 0);
+        });
+      }
+
+      return storeCategories.map((c: any) => {
+        const label = c.label || c.name || "Category";
+        const savedLimit = dashboardCategoriesMap.get(label.toLowerCase());
+        return {
+          label,
+          icon: c.icon || "pricetag",
+          color: c.color || "#4ADE80",
+          initial: savedLimit ? String(savedLimit) : "0",
+        };
+      });
     }
-    return fallbackCategories;
-  }, [storeCategories]);
+    return [];
+  }, [storeCategories, dashboardData]);
 
   const [limits, setLimits] = useState<Record<string, string>>({});
 
@@ -62,8 +70,8 @@ export default function BudgetScreen() {
     setLimits((prev) => {
       const next = { ...prev };
       activeCategories.forEach((cat) => {
-        if (!next[cat.label]) {
-          next[cat.label] = cat.initial || "1000";
+        if (next[cat.label] === undefined) {
+          next[cat.label] = cat.initial || "0";
         }
       });
       return next;

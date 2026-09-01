@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Param,
   ParseIntPipe,
   Patch,
@@ -33,5 +34,10 @@ export class ExpenseController {
   @ResponseMessage('Budget added successfully')
   addBudget(@Body() data: CreateBudgetSettings) {
     return this.expenseService.addBudget(data);
+  }
+  @Get('get-dashboard')
+  @ResponseMessage('Dashboard fetched successfully')
+  getDashboard() {
+    return this.expenseService.getDashboard();
   }
 }

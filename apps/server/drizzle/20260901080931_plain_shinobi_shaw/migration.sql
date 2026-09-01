@@ -1,0 +1,1 @@
+ALTER TABLE "expense_transactions" ADD COLUMN "type" varchar(50) DEFAULT 'General' NOT NULL;
