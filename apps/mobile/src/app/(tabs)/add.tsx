@@ -27,14 +27,17 @@ const categories = [
 
 export default function AddScreen() {
   const insets = useSafeAreaInsets();
-  const [amount, setAmount] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Personal");
-  const [note, setNote] = useState("");
-  const [date, setDate] = useState(new Date());
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [yearPickerVisible, setYearPickerVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  const [expense, setExpense] = useState({
+    amount: "",
+    selectedCategory: "Personal",
+    note: "",
+    date: new Date(),
+  });
 
   const { category, getCategory } = useExpenseStore();
 
@@ -46,7 +49,7 @@ export default function AddScreen() {
     setRefreshing(false);
   }, [getCategory]);
 
-  const numericAmount = Number(amount) || 0;
+  const numericAmount = Number(expense.amount) || 0;
   const isValid = numericAmount > 0;
 
   const saveExpense = () => {
@@ -54,7 +57,7 @@ export default function AddScreen() {
     router.back();
   };
 
-  const formattedDate = date.toLocaleDateString("en-IN", {
+  const formattedDate = expense.date.toLocaleDateString("en-IN", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -113,8 +116,8 @@ export default function AddScreen() {
           <View style={styles.amountRow}>
             <Text style={styles.currency}>₹</Text>
             <TextInput
-              value={amount}
-              onChangeText={setAmount}
+              value={expense.amount}
+              onChangeText={(text) => setExpense({ ...expense, amount: text })}
               placeholder="0"
               placeholderTextColor="#475569"
               keyboardType="numeric"
@@ -129,18 +132,18 @@ export default function AddScreen() {
         <View style={styles.categoryGrid}>
           {(Array.isArray(category) && category.length > 0
             ? category.map((cat: any) => ({
-                label: cat.name || cat.label || "Category",
-                icon: cat.icon || "pricetag-outline",
-                color: cat.color || "#4ADE80",
-              }))
+              label: cat.name || cat.label || "Category",
+              icon: cat.icon || "pricetag-outline",
+              color: cat.color || "#4ADE80",
+            }))
             : categories
           ).map((cat: any, index: number) => {
             const label = cat.label;
-            const isSelected = selectedCategory === label;
+            const isSelected = expense.selectedCategory === label;
             return (
               <TouchableOpacity
                 key={cat.id || `${label}-${index}`}
-                onPress={() => setSelectedCategory(label)}
+                onPress={() => setExpense({ ...expense, selectedCategory: label })}
                 style={[
                   styles.categoryCard,
                   isSelected && styles.selectedCategory,
@@ -180,7 +183,7 @@ export default function AddScreen() {
             style={styles.fieldRow}
             activeOpacity={0.75}
             onPress={() => {
-              setCalendarMonth(date);
+              setCalendarMonth(expense.date);
               setCalendarVisible(true);
             }}
           >
@@ -199,8 +202,8 @@ export default function AddScreen() {
               <Ionicons name="create-outline" size={19} color="#94A3B8" />
             </View>
             <TextInput
-              value={note}
-              onChangeText={setNote}
+              value={expense.note}
+              onChangeText={(text) => setExpense({ ...expense, note: text })}
               placeholder="Add a note (optional)"
               placeholderTextColor="#64748B"
               style={styles.noteInput}
@@ -334,21 +337,22 @@ export default function AddScreen() {
                   return <View key={`empty-${index}`} style={styles.dayCell} />;
                 const day = index - firstDay + 1;
                 const selected =
-                  date.getDate() === day &&
-                  date.getMonth() === calendarMonth.getMonth() &&
-                  date.getFullYear() === calendarMonth.getFullYear();
+                  expense.date.getDate() === day &&
+                  expense.date.getMonth() === calendarMonth.getMonth() &&
+                  expense.date.getFullYear() === calendarMonth.getFullYear();
                 return (
                   <TouchableOpacity
                     key={day}
                     style={[styles.dayCell, selected && styles.selectedDay]}
                     onPress={() => {
-                      setDate(
-                        new Date(
+                      setExpense({
+                        ...expense,
+                        date: new Date(
                           calendarMonth.getFullYear(),
                           calendarMonth.getMonth(),
                           day,
                         ),
-                      );
+                      });
                       setCalendarVisible(false);
                     }}
                   >

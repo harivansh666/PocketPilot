@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 export default function RootLayout() {
   return (
@@ -13,6 +14,7 @@ export default function RootLayout() {
         <Stack.Screen name="expense/add" options={{ headerShown: false }} />
         <Stack.Screen name="budget" options={{ headerShown: false }} />
       </Stack>
+      <Toast />
     </SafeAreaProvider>
   );
 }
