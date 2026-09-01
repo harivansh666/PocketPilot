@@ -40,4 +40,10 @@ export class ExpenseController {
   getDashboard() {
     return this.expenseService.getDashboard();
   }
+
+  @Get('history')
+  @ResponseMessage('History fetched successfully')
+  getHistory() {
+    return this.expenseService.getHistory();
+  }
 }

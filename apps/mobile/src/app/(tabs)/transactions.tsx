@@ -11,6 +11,7 @@ import { router } from "expo-router";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useExpenseStore } from "@/store/useExpenseStore";
+import { getCategoryIconAndColor } from "@/utils/categoryHelpers";
 
 type Transaction = {
   id: string;
@@ -22,87 +23,87 @@ type Transaction = {
   color: string;
 };
 
-
-
-const transactions: Transaction[] = [
-  {
-    id: "rent",
-    title: "Room rent",
-    category: "Rent",
-    date: "Today, 9:00 AM",
-    amount: 6000,
-    icon: "home",
-    color: "#F87171",
-  },
-  {
-    id: "petrol",
-    title: "Bike petrol",
-    category: "Petrol",
-    date: "Yesterday, 6:20 PM",
-    amount: 300,
-    icon: "car",
-    color: "#FBBF24",
-  },
-  {
-    id: "vegetables",
-    title: "Vegetables",
-    category: "Food",
-    date: "Yesterday, 10:45 AM",
-    amount: 600,
-    icon: "nutrition",
-    color: "#4ADE80",
-  },
-  {
-    id: "chai",
-    title: "Tea and snacks",
-    category: "Personal",
-    date: "20 Mar, 5:30 PM",
-    amount: 120,
-    icon: "cafe",
-    color: "#A78BFA",
-  },
-  {
-    id: "recharge",
-    title: "Mobile recharge",
-    category: "Personal",
-    date: "18 Mar, 8:10 PM",
-    amount: 249,
-    icon: "phone-portrait",
-    color: "#60A5FA",
-  },
-];
-
 export default function TransactionsScreen() {
   const insets = useSafeAreaInsets();
   const [selectedFilter, setSelectedFilter] = useState("All");
   const [refreshing, setRefreshing] = useState(false);
-  const { getExpence, getCategory, category, expenceData } = useExpenseStore();
+  const {
+    getExpence,
+    getCategory,
+    getHistory,
+    historyData,
+    expenceData,
+    getDashboard,
+    dashboardData,
+  } = useExpenseStore();
 
   useEffect(() => {
     getExpence();
-    getCategory()
+    getCategory();
+    getHistory();
+    getDashboard();
   }, []);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await getExpence();
+    await Promise.all([getExpence(), getHistory(), getCategory(), getDashboard()]);
     setRefreshing(false);
-  }, [getExpence]);
+  }, [getExpence, getHistory, getCategory, getDashboard]);
 
-  const totalSpent = transactions.reduce(
-    (total, item) => total + item.amount,
-    0,
-  );
+  const rawList =
+    Array.isArray(historyData) && historyData.length > 0
+      ? historyData
+      : Array.isArray(expenceData)
+        ? expenceData
+        : [];
+
+  const transactions: Transaction[] = rawList.map((item: any) => {
+    const categoryName = item.type || item.category || "Expense";
+    const title = item.note || item.type || item.category || "Expense";
+    const amount = Number(item.amount) || 0;
+    const { icon, color } = getCategoryIconAndColor(categoryName);
+
+    let dateStr = "Recently";
+    if (item.date || item.createdAt) {
+      try {
+        dateStr = new Date(item.date || item.createdAt).toLocaleDateString("en-IN", {
+          month: "short",
+          day: "numeric",
+        });
+      } catch (e) {
+        dateStr = "Recently";
+      }
+    }
+
+    return {
+      id: item.id || String(Math.random()),
+      title,
+      category: categoryName,
+      date: dateStr,
+      amount,
+      icon,
+      color,
+    };
+  });
+
+  const totalSpent = historyData?.[0]?.monthlySpent
+    ? Number(historyData[0].monthlySpent)
+    : transactions.reduce((total, item) => total + item.amount, 0);
+
+  const totalBudget = dashboardData?.expence?.[0]?.totalBudget
+    ? Number(dashboardData.expence[0].totalBudget)
+    : 10000;
+
+  const remaining = totalBudget - totalSpent;
+
   const visibleTransactions =
     selectedFilter === "All"
       ? transactions
       : transactions.filter((item) => item.category === selectedFilter);
 
-  const dynamicCategories = Array.isArray(category) && category.length > 0
-    ? category.map((cat: any) => (typeof cat === "string" ? cat : cat.name || cat.label || "")).filter(Boolean)
-    : ["Rent", "Food", "Petrol", "Personal"];
-
-  const filterOptions = ["All", ...Array.from(new Set(dynamicCategories))];
+  const filterOptions = ["All", ...Array.from(new Set(transactions.map((t) => t.category)))];
+  const adviceText = historyData?.[0]?.lessThenLimit || "Keep personal spending under ₹1,000 this month";
+  const monthYearHeader = `${new Date().toLocaleString("en-US", { month: "long" }).toUpperCase()} ${new Date().getFullYear()}`;
 
   return (
     <ScrollView
@@ -123,7 +124,7 @@ export default function TransactionsScreen() {
     >
       <View style={styles.header}>
         <View>
-          <Text style={styles.eyebrow}>MARCH 2026</Text>
+          <Text style={styles.eyebrow}>{monthYearHeader}</Text>
           <Text style={styles.title}>Expense history</Text>
         </View>
         <TouchableOpacity
@@ -143,19 +144,19 @@ export default function TransactionsScreen() {
         <View style={styles.remainingPill}>
           <Ionicons name="trending-down" size={15} color="#4ADE80" />
           <Text style={styles.remainingText}>
-            ₹{(10000 - totalSpent).toLocaleString("en-IN")} left
+            ₹{remaining.toLocaleString("en-IN")} left
           </Text>
         </View>
         <View style={styles.summaryTrack}>
           <View
             style={[
               styles.summaryFill,
-              { width: `${Math.min((totalSpent / 10000) * 100, 100)}%` },
+              { width: `${totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0}%` },
             ]}
           />
         </View>
         <Text style={styles.summaryHint}>
-          Keep personal spending under ₹1,000 this month
+          {adviceText}
         </Text>
       </View>
 
@@ -193,28 +194,42 @@ export default function TransactionsScreen() {
         <Text style={styles.count}>{visibleTransactions.length} entries</Text>
       </View>
 
-      {visibleTransactions.map((item) => (
-        <TouchableOpacity
-          key={item.id}
-          style={styles.transactionRow}
-          activeOpacity={0.75}
-        >
-          <View
-            style={[styles.iconBox, { backgroundColor: `${item.color}22` }]}
+      {visibleTransactions.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="receipt-outline" size={36} color="#64748B" />
+          <Text style={styles.emptyText}>No expenses recorded yet</Text>
+        </View>
+      ) : (
+        visibleTransactions.map((item) => (
+          <TouchableOpacity
+            key={item.id}
+            style={styles.transactionRow}
+            activeOpacity={0.75}
           >
-            <Ionicons name={item.icon as any} size={20} color={item.color} />
-          </View>
-          <View style={styles.transactionInfo}>
-            <Text style={styles.transactionTitle}>{item.title}</Text>
-            <Text style={styles.transactionMeta}>
-              {item.category} · {item.date}
+            <View
+              style={[styles.iconBox, { backgroundColor: `${item.color}22` }]}
+            >
+              <Ionicons name={item.icon as any} size={20} color={item.color} />
+            </View>
+            <View style={styles.transactionInfo}>
+              <Text style={styles.transactionTitle}>{item.title}</Text>
+              <Text style={styles.transactionMeta}>
+                {item.category} · {item.date}
+              </Text>
+            </View>
+            <Text style={styles.transactionAmount}>
+              -₹{item.amount.toLocaleString("en-IN")}
             </Text>
-          </View>
-          <Text style={styles.transactionAmount}>
-            -₹{item.amount.toLocaleString("en-IN")}
-          </Text>
-        </TouchableOpacity>
-      ))}
+          </TouchableOpacity>
+        ))
+      )}
+
+      {/* Footer Branding */}
+      <View style={styles.footerBranding}>
+        <Text style={styles.footerBrandingText}>
+          Powered by <Text style={styles.footerBrandingHighlight}>Hattionline.in</Text>
+        </Text>
+      </View>
     </ScrollView>
   );
 }
@@ -328,5 +343,36 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "800",
     marginLeft: 8,
+  },
+  emptyContainer: {
+    backgroundColor: "#151E32",
+    borderRadius: 16,
+    padding: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#1F2A44",
+    marginTop: 10,
+  },
+  emptyText: {
+    color: "#94A3B8",
+    fontSize: 14,
+    marginTop: 10,
+    fontWeight: "500",
+  },
+  footerBranding: {
+    marginTop: 28,
+    marginBottom: 10,
+    alignItems: "center",
+  },
+  footerBrandingText: {
+    color: "#64748B",
+    fontSize: 12,
+    fontWeight: "500",
+    letterSpacing: 0.5,
+  },
+  footerBrandingHighlight: {
+    color: "#22C55E",
+    fontWeight: "700",
   },
 });

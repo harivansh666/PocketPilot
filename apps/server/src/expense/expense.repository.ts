@@ -81,4 +81,53 @@ export class ExpenseRepository {
       categories,
     };
   }
+
+  async getHistoryRecord() {
+    const transactions = await db
+      .select({
+        id: ExpenseTransactions.id,
+        amount: ExpenseTransactions.amount,
+        type: ExpenseTransactions.type,
+        category: ExpenseTransactions.category,
+        date: ExpenseTransactions.date,
+        lastBalance: ExpenseTransactions.lastBalance,
+        note: ExpenseTransactions.note,
+      })
+      .from(ExpenseTransactions)
+      .where(eq(ExpenseTransactions.userId, 1))
+      .orderBy(desc(ExpenseTransactions.createdAt));
+
+    const totalSpentResult = await db
+      .select({
+        monthlySpent: sum(ExpenseTransactions.amount),
+      })
+      .from(ExpenseTransactions)
+      .where(eq(ExpenseTransactions.userId, 1));
+
+    const monthlySpent = Number(totalSpentResult[0]?.monthlySpent) || 0;
+
+    const history = transactions.map((item) => {
+      const typeName = item.type || item.category || "personal";
+      const amount = Number(item.amount) || 0;
+
+      let targetLimit = 1000;
+      if (amount >= 500 && amount <= 600) {
+        targetLimit = 1000;
+      } else if (amount < 500) {
+        targetLimit = 500;
+      } else {
+        targetLimit = Math.ceil(amount / 500) * 500;
+      }
+
+      const lessThenLimit = `Keep ${typeName.toLowerCase()} spending under ₹${targetLimit.toLocaleString("en-IN")} this month`;
+
+      return {
+        ...item,
+        monthlySpent,
+        lessThenLimit,
+      };
+    });
+
+    return history;
+  }
 }

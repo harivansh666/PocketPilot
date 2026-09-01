@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  Image,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -92,9 +93,16 @@ export default function HomeScreen() {
     >
       {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Hello, Harivansh</Text>
-          <Text style={styles.title}>{monthTitle}</Text>
+        <View style={styles.headerLeft}>
+          <Image
+            source={require("../../../assets/images/Untitled.png")}
+            style={styles.appLogo}
+            resizeMode="contain"
+          />
+          <View>
+            <Text style={styles.greeting}>Hello, Harivansh</Text>
+            <Text style={styles.title}>{monthTitle}</Text>
+          </View>
         </View>
         <TouchableOpacity
           style={styles.avatarCircle}
@@ -201,6 +209,13 @@ export default function HomeScreen() {
           );
         })}
       </View>
+
+      {/* Footer Branding */}
+      <View style={styles.footerBranding}>
+        <Text style={styles.footerBrandingText}>
+          Powered by <Text style={styles.footerBrandingHighlight}>Hattionline.in</Text>
+        </Text>
+      </View>
     </ScrollView>
   );
 }
@@ -217,6 +232,18 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 24,
+  },
+
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+
+  appLogo: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
   },
 
   greeting: {
@@ -433,6 +460,24 @@ const styles = StyleSheet.create({
   emptyButtonText: {
     color: "#FFFFFF",
     fontSize: 13,
+    fontWeight: "700",
+  },
+
+  footerBranding: {
+    marginTop: 28,
+    marginBottom: 10,
+    alignItems: "center",
+  },
+
+  footerBrandingText: {
+    color: "#64748B",
+    fontSize: 12,
+    fontWeight: "500",
+    letterSpacing: 0.5,
+  },
+
+  footerBrandingHighlight: {
+    color: "#22C55E",
     fontWeight: "700",
   },
 });

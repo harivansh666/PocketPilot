@@ -17,5 +17,9 @@ export class ExpenseService {
   }
   async getDashboard() {
     return await this.expenseRepo.getDashboardRecord();
+
+  }
+  async getHistory() {
+    return await this.expenseRepo.getHistoryRecord();
   }
 }
