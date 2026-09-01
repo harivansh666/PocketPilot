@@ -1,11 +1,14 @@
-// Declare module to avoid TypeScript error when axios types are not installed
-declare module "axios";
 import axios from "axios";
+
+const baseURL = __DEV__
+  ? (process.env.EXPO_PUBLIC_API_URL || "http://192.168.29.16:5000/api")
+  : (process.env.EXPO_PUBLIC_API_URL_PRODUCTION || "https://pocketpilotapp.vercel.app/api");
+
 const axiosInstance = axios.create({
-    baseURL: process.env.EXPO_MODE === "development" ? process.env.EXPO_PUBLIC_API_URL : process.env.EXPO_PUBLIC_API_URL_PRODUCTION,
-    headers: {
-        "Content-Type": "application/json",
-    },
+  baseURL,
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
 export default axiosInstance;
