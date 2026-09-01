@@ -11,7 +11,7 @@ export class CreateExpenseDto {
   @IsNumber()
   amount!: number;
 
-  @IsIn(['Income', 'Petrol', 'Food', 'Vegitables', 'Others'])
+  @IsIn(['Expense', 'Budget'])
   category!: ExpenseCategory;
 
   @IsOptional()

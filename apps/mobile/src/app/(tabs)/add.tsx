@@ -10,6 +10,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from "react-native";
 import { router } from "expo-router";
 import Ionicons from "@react-native-vector-icons/ionicons";
@@ -31,15 +32,18 @@ export default function AddScreen() {
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [yearPickerVisible, setYearPickerVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [expense, setExpense] = useState({
+    userId: 1,
     amount: "",
-    selectedCategory: "Personal",
+    selectedCategory: "Expense",
     note: "",
+    lastbalance: "",
     date: new Date(),
   });
 
-  const { category, getCategory } = useExpenseStore();
+  const { category, getCategory, addExpence } = useExpenseStore();
 
   useEffect(() => { getCategory() }, []);
 
@@ -52,9 +56,28 @@ export default function AddScreen() {
   const numericAmount = Number(expense.amount) || 0;
   const isValid = numericAmount > 0;
 
-  const saveExpense = () => {
-    if (!isValid) return;
-    router.back();
+  const saveExpense = async () => {
+    if (!isValid || isSaving) return;
+    setIsSaving(true);
+
+    const finalNote = expense.note
+      ? `${expense.selectedCategory} - ${expense.note}`
+      : expense.selectedCategory;
+
+    const success = await addExpence({
+      userId: 1,
+      amount: numericAmount,
+      category: "Expense",
+      note: finalNote,
+      lastBalance: expense.lastbalance ? Number(expense.lastbalance) : 0,
+      date: expense.date,
+      spentAt: expense.date,
+    });
+
+    setIsSaving(false);
+    if (success) {
+      router.back();
+    }
   };
 
   const formattedDate = expense.date.toLocaleDateString("en-IN", {
@@ -223,18 +246,24 @@ export default function AddScreen() {
         </View>
 
         <TouchableOpacity
-          style={[styles.saveButton, !isValid && styles.disabledButton]}
+          style={[styles.saveButton, (!isValid || isSaving) && styles.disabledButton]}
           onPress={saveExpense}
-          disabled={!isValid}
+          disabled={!isValid || isSaving}
         >
-          <Ionicons
-            name="checkmark"
-            size={20}
-            color={isValid ? "#0B1120" : "#64748B"}
-          />
-          <Text style={[styles.saveText, !isValid && styles.disabledText]}>
-            Save expense
-          </Text>
+          {isSaving ? (
+            <ActivityIndicator color="#0B1120" size="small" />
+          ) : (
+            <>
+              <Ionicons
+                name="checkmark"
+                size={20}
+                color={isValid ? "#0B1120" : "#64748B"}
+              />
+              <Text style={[styles.saveText, !isValid && styles.disabledText]}>
+                Save expense
+              </Text>
+            </>
+          )}
         </TouchableOpacity>
       </ScrollView>
 

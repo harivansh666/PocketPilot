@@ -13,7 +13,7 @@ import { CreateExpenseDto } from './dto/create-expense.dto';
 
 @Controller('expense')
 export class ExpenseController {
-  constructor(private readonly expenseService: ExpenseService) {}
+  constructor(private readonly expenseService: ExpenseService) { }
   @Post('add')
   @ResponseMessage('Expense added successfully')
   addExpense(@Body() data: CreateExpenseDto) {

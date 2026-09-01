@@ -6,14 +6,18 @@ import { getCategoryIconAndColor } from '@/utils/categoryHelpers'
 type ExpenceState = {
     expenceData: any[]
     category: any[]
+    budgetData: any[]
     getExpence: () => Promise<void>
-    addExpence: (data: any) => Promise<void>
+    addExpence: (data: any) => Promise<boolean>
     getCategory: () => Promise<void>
+    addCategory: (data: { name: string; type?: 'Expense' | 'Budget' }) => Promise<boolean>
+    addBudget: (data: any) => Promise<boolean>
 }
 
 export const useExpenseStore = create<ExpenceState>((set) => ({
     expenceData: [],
     category: [],
+    budgetData: [],
     getExpence: async () => {
         try {
             const response = await axiosInstance.get('/expense/all');
@@ -25,6 +29,8 @@ export const useExpenseStore = create<ExpenceState>((set) => ({
     addExpence: async (data: any) => {
         try {
             const response = await axiosInstance.post('/expense/add', data);
+            console.log("response.data", response.data);
+            console.log("data", data)
             const newExpense = response.data?.data || response.data;
             Toast.show({
                 type: 'success',
@@ -32,12 +38,17 @@ export const useExpenseStore = create<ExpenceState>((set) => ({
                 visibilityTime: 500,
             });
             set((state) => ({ expenceData: [...state.expenceData, newExpense] }));
-        } catch (error) {
+            return true;
+        } catch (error: any) {
             Toast.show({
                 type: 'error',
                 text1: 'Error adding expence',
             });
             console.error('Error adding expence:', error);
+            if (error.response) {
+                console.error('Error response data:', error.response.data);
+            }
+            return false;
         }
     },
     getCategory: async () => {
@@ -61,6 +72,67 @@ export const useExpenseStore = create<ExpenceState>((set) => ({
                 type: 'error',
                 text1: 'Error fetching categories',
             });
+        }
+    },
+
+    addCategory: async (data: { name: string; type?: 'Expense' | 'Budget' }) => {
+        try {
+            const response = await axiosInstance.post('/attributes/create', {
+                name: data.name,
+                type: data.type || 'Expense',
+            });
+            const newCategory = response.data?.data || response.data;
+            Toast.show({
+                type: 'success',
+                text1: 'Category added successfully',
+                visibilityTime: 500,
+            });
+            const label = newCategory.name || newCategory.label || data.name;
+            const { icon, color } = getCategoryIconAndColor(label);
+            const mappedCat = {
+                ...newCategory,
+                label,
+                icon: newCategory.icon || icon,
+                color: newCategory.color || color,
+            };
+            set((state) => ({ category: [...state.category, mappedCat] }));
+            return true;
+        } catch (error: any) {
+            Toast.show({
+                type: 'error',
+                text1: 'Error adding category',
+            });
+            console.error('Error adding category:', error);
+            if (error.response) {
+                console.error('Error response data:', error.response.data);
+            }
+            return false;
+        }
+    },
+
+    addBudget: async (data: any) => {
+        try {
+            const response = await axiosInstance.post('/expense/add-budget', data);
+            console.log("response.data", response.data);
+            console.log("data", data)
+            const newBudget = response.data?.data || response.data;
+            Toast.show({
+                type: 'success',
+                text1: 'Budget added successfully',
+                visibilityTime: 500,
+            });
+            set((state) => ({ budgetData: [...state.budgetData, newBudget] }));
+            return true;
+        } catch (error: any) {
+            Toast.show({
+                type: 'error',
+                text1: 'Error adding budget',
+            });
+            console.error('Error adding budget:', error);
+            if (error.response) {
+                console.error('Error response data:', error.response.data);
+            }
+            return false;
         }
     }
 }))

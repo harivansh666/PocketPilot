@@ -1,6 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -12,8 +14,9 @@ import {
 import { router } from "expo-router";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useExpenseStore } from "@/store/useExpenseStore";
 
-const categories = [
+const fallbackCategories = [
   { label: "Room rent", icon: "home", color: "#F87171", initial: "6000" },
   {
     label: "Food & vegetables",
@@ -27,12 +30,46 @@ const categories = [
 
 export default function BudgetScreen() {
   const insets = useSafeAreaInsets();
+  const { addBudget, category: storeCategories, getCategory, addCategory } = useExpenseStore();
+
   const [monthlyBudget, setMonthlyBudget] = useState("10000");
-  const [limits, setLimits] = useState(
-    Object.fromEntries(
-      categories.map((category) => [category.label, category.initial]),
-    ),
-  );
+  const [isSaving, setIsSaving] = useState(false);
+
+  // New Category Modal State
+  const [modalVisible, setModalVisible] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [isAddingCat, setIsAddingCat] = useState(false);
+
+  useEffect(() => {
+    getCategory();
+  }, []);
+
+  const activeCategories = useMemo(() => {
+    if (Array.isArray(storeCategories) && storeCategories.length > 0) {
+      return storeCategories.map((c: any) => ({
+        label: c.label || c.name || "Category",
+        icon: c.icon || "pricetag",
+        color: c.color || "#4ADE80",
+        initial: "1000",
+      }));
+    }
+    return fallbackCategories;
+  }, [storeCategories]);
+
+  const [limits, setLimits] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setLimits((prev) => {
+      const next = { ...prev };
+      activeCategories.forEach((cat) => {
+        if (!next[cat.label]) {
+          next[cat.label] = cat.initial || "1000";
+        }
+      });
+      return next;
+    });
+  }, [activeCategories]);
+
   const totalLimits = useMemo(
     () =>
       Object.values(limits).reduce(
@@ -41,8 +78,38 @@ export default function BudgetScreen() {
       ),
     [limits],
   );
+
   const budget = Number(monthlyBudget) || 0;
   const isOverBudget = totalLimits > budget;
+
+  const handleSaveBudget = async () => {
+    if (isOverBudget || budget <= 0 || isSaving) return;
+    setIsSaving(true);
+    const success = await addBudget({
+      userId: 1,
+      type: "Budget",
+      amount: budget,
+      limit: totalLimits,
+    });
+    setIsSaving(false);
+    if (success) {
+      router.back();
+    }
+  };
+
+  const handleAddCategory = async () => {
+    if (!newCatName.trim() || isAddingCat) return;
+    setIsAddingCat(true);
+    const success = await addCategory({
+      name: newCatName.trim(),
+      type: "Expense",
+    });
+    setIsAddingCat(false);
+    if (success) {
+      setNewCatName("");
+      setModalVisible(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -99,13 +166,16 @@ export default function BudgetScreen() {
               How much can each category use?
             </Text>
           </View>
-          <Text style={[styles.totalText, isOverBudget && styles.warningText]}>
-            ₹{totalLimits.toLocaleString("en-IN")} / ₹
-            {budget.toLocaleString("en-IN")}
-          </Text>
+          <TouchableOpacity
+            style={styles.addCatHeaderButton}
+            onPress={() => setModalVisible(true)}
+          >
+            <Ionicons name="add-circle-outline" size={16} color="#4ADE80" />
+            <Text style={styles.addCatHeaderText}>Add Category</Text>
+          </TouchableOpacity>
         </View>
 
-        {categories.map((category) => (
+        {activeCategories.map((category) => (
           <View key={category.label} style={styles.categoryRow}>
             <View
               style={[
@@ -126,7 +196,7 @@ export default function BudgetScreen() {
             <View style={styles.inputBox}>
               <Text style={styles.inputCurrency}>₹</Text>
               <TextInput
-                value={limits[category.label]}
+                value={limits[category.label] || "0"}
                 onChangeText={(value) =>
                   setLimits((current) => ({
                     ...current,
@@ -155,25 +225,71 @@ export default function BudgetScreen() {
         </View>
 
         <TouchableOpacity
-          style={[styles.saveButton, isOverBudget && styles.disabledButton]}
-          disabled={isOverBudget || budget <= 0}
-          onPress={() => router.back()}
+          style={[styles.saveButton, (isOverBudget || budget <= 0 || isSaving) && styles.disabledButton]}
+          disabled={isOverBudget || budget <= 0 || isSaving}
+          onPress={handleSaveBudget}
         >
-          <Ionicons
-            name="checkmark"
-            size={20}
-            color={isOverBudget || budget <= 0 ? "#64748B" : "#0B1120"}
-          />
-          <Text
-            style={[
-              styles.saveText,
-              (isOverBudget || budget <= 0) && styles.disabledText,
-            ]}
-          >
-            Save monthly budget
-          </Text>
+          {isSaving ? (
+            <ActivityIndicator color="#0B1120" size="small" />
+          ) : (
+            <>
+              <Ionicons
+                name="checkmark"
+                size={20}
+                color={isOverBudget || budget <= 0 ? "#64748B" : "#0B1120"}
+              />
+              <Text
+                style={[
+                  styles.saveText,
+                  (isOverBudget || budget <= 0) && styles.disabledText,
+                ]}
+              >
+                Save monthly budget
+              </Text>
+            </>
+          )}
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Add New Category Modal */}
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Add New Category</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Category name (e.g. Shopping)"
+              placeholderTextColor="#64748B"
+              value={newCatName}
+              onChangeText={setNewCatName}
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.createBtn, (!newCatName.trim() || isAddingCat) && styles.disabledButton]}
+                disabled={!newCatName.trim() || isAddingCat}
+                onPress={handleAddCategory}
+              >
+                {isAddingCat ? (
+                  <ActivityIndicator color="#0B1120" size="small" />
+                ) : (
+                  <Text style={styles.createBtnText}>Create</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -304,4 +420,81 @@ const styles = StyleSheet.create({
   disabledButton: { backgroundColor: "#1E293B" },
   saveText: { color: "#0B1120", fontSize: 15, fontWeight: "800" },
   disabledText: { color: "#64748B" },
+  addCatHeaderButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#151E32",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#22C55E33",
+  },
+  addCatHeaderText: {
+    color: "#4ADE80",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(2, 6, 23, 0.75)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContainer: {
+    width: "100%",
+    backgroundColor: "#151E32",
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "#1F2A44",
+  },
+  modalTitle: {
+    color: "#F8FAFC",
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 14,
+  },
+  modalInput: {
+    backgroundColor: "#0B1120",
+    borderRadius: 12,
+    padding: 12,
+    color: "#F8FAFC",
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: "#263552",
+    marginBottom: 18,
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+  },
+  cancelBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: "#1E293B",
+  },
+  cancelBtnText: {
+    color: "#94A3B8",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  createBtn: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: "#22C55E",
+    justifyContent: "center",
+    alignItems: "center",
+    minWidth: 70,
+  },
+  createBtnText: {
+    color: "#0B1120",
+    fontSize: 14,
+    fontWeight: "700",
+  },
 });
