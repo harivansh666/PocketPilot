@@ -213,7 +213,7 @@ export default function HomeScreen() {
       {/* Footer Branding */}
       <View style={styles.footerBranding}>
         <Text style={styles.footerBrandingText}>
-          Powered by <Text style={styles.footerBrandingHighlight}>Hattionline.in Harivansh</Text>
+          Powered by <Text style={styles.footerBrandingHighlight}>Hattionline.in Harivansh!!!</Text>
         </Text>
       </View>
     </ScrollView>
