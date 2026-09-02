@@ -58,6 +58,19 @@ Join our community of developers creating universal apps.
 
 <!-- eas update --channel production --message "Fix expense screen" -->
 
-<!-- eas update --auto -->
+<!-- eas update --auto  # तुरंत प्रकाशित (प्रीव्यू) -->
 
 <!-- eas update --branch preview  iss naal automatically update ho jana hai app background vich -->
+
+
+<!-- eas build --platform android --profile production --> 
+<!-- iss command naal build hona aa project te upload hona aa -->
+
+
+<!-- eas update --channel preview  -->   # डेवलपमेंट/स्टेज के लिए OTA
+<!-- eas update --auto -->               # तुरंत प्रकाशित (प्रीव्यू)
+<!-- eas update --channel production --auto -->  # प्रोड‑रिलीज़ OTA
+<!-- eas build --platform android --profile production -->   # नया नेटिव बिल्ड
+
+
+कोई भी API/UI‑बदलाव करने के बाद, eas update --channel preview --auto चलाएँ (स्टेज़ टेस्ट) या eas update --channel production --auto (री‑लॉन्च)।
