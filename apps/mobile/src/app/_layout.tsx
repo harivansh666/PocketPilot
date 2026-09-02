@@ -25,7 +25,12 @@ export default function RootLayout() {
         if (updateAvailable) {
           const result = await Updates.checkForUpdateAsync();
           if (result.isAvailable) {
-            await Updates.fetchUpdateAsync(); // background download
+            await Updates.fetchUpdateAsync(); // download OTA bundle
+            // Notify the user that the update has been downloaded
+            Toast.show({ type: 'success', text1: 'Update downloaded! Tap "Apply now" to refresh.' });
+          } else {
+            // No OTA update available
+            console.log('No OTA update found on channel');
           }
         }
       } catch (e) {
@@ -53,7 +58,11 @@ export default function RootLayout() {
       <SafeAreaProvider style={{ backgroundColor: '#0B1120' }}>
         <View style={styles.banner}>
           <Text style={styles.bannerMsg}>{info.message}</Text>
-          <Button title="Apply now" onPress={() => Updates.reloadAsync()} />
+          <Button title="Apply now" onPress={async () => {
+            await Updates.reloadAsync();
+            // Show a toast after the app reloads (will appear on next load)
+            Toast.show({ type: 'info', text1: 'App reloaded with latest update.' });
+          }} />
         </View>
         <Stack
           screenOptions={{
