@@ -54,7 +54,7 @@
       "url": "https://u.expo.dev/81474306-0852-41e4-bf4a-3d4cb719373f",
       "enabled": true,
       "fallbackToCacheTimeout": 0,
-      "channel": "apk"
+      "channel": "preview"
     }
   }
 }
