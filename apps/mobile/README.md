@@ -60,4 +60,4 @@ Join our community of developers creating universal apps.
 
 <!-- eas update --auto -->
 
-<!-- eas update --branch preview -->
+<!-- eas update --branch preview  iss naal automatically update ho jana hai app background vich -->
