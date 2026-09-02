@@ -8,7 +8,7 @@ import Constants from 'expo-constants';
 import axios from 'axios';
 
 // Adjust this URL if your backend runs elsewhere
-const SERVER_URL = 'http://localhost:3000/api/v1/update';
+const SERVER_URL = 'https://pocketpilotapp.vercel.app/api/v1/update';
 
 export default function RootLayout() {
   const [checking, setChecking] = useState(true);
