@@ -100,7 +100,7 @@ export default function HomeScreen() {
             resizeMode="contain"
           />
           <View>
-            <Text style={styles.greeting}>Hello, Harivansh !!!</Text>
+            <Text style={styles.greeting}>Hello, Harivansh  sharma !!!</Text>
             <Text style={styles.title}>{monthTitle}</Text>
           </View>
         </View>
