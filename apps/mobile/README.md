@@ -74,3 +74,5 @@ Join our community of developers creating universal apps.
 
 
 कोई भी API/UI‑बदलाव करने के बाद, eas update --channel preview --auto चलाएँ (स्टेज़ टेस्ट) या eas update --channel production --auto (री‑लॉन्च)।
+
+eas update --channel preview --message "some minor changes"
