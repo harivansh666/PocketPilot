@@ -3,13 +3,14 @@ import { integer, text, timestamp } from 'drizzle-orm/pg-core';
 import { pgTable, uuid, varchar } from 'drizzle-orm/pg-core';
 import { AttrubuteType } from '../attributes/Attribute.schema';
 
-
 export const BudgetSettings = pgTable('budget_settings', {
   id: uuid('uuid').primaryKey().defaultRandom(),
   userId: integer('user_id').notNull(),
-  type: AttrubuteType('type').notNull(),
+  category: AttrubuteType('category').notNull(),
+  type: varchar('type', { length: 50 }),
   amount: integer('amount').notNull(),
   limit: integer('limit').notNull(),
+  month: varchar('month', { length: 20 }),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });

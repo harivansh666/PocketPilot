@@ -1,5 +1,5 @@
 import db from '../db';
-import { desc, eq, sql, sum } from 'drizzle-orm';
+import { and, desc, eq, ne, sql, sum } from 'drizzle-orm';
 
 import {
   BudgetSettings,
@@ -8,15 +8,36 @@ import {
 } from './expense.schema';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 
+function getCurrentMonthString(): string {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+}
+
 export class ExpenseRepository {
   async addExpenseRecord(data: CreateExpenseDto) {
+    const [lastBalanceRow] = await db
+      .select({ lastBalance: ExpenseTransactions.lastBalance })
+      .from(ExpenseTransactions)
+      .where(
+        and(
+          eq(ExpenseTransactions.userId, data.userId),
+          eq(ExpenseTransactions.category, data.category),
+        ),
+      )
+      .orderBy(desc(ExpenseTransactions.createdAt))
+      .limit(1);
+
+    const lastBalance = data.lastBalance ?? lastBalanceRow?.lastBalance ?? 0;
+
     await db.insert(ExpenseTransactions).values({
       amount: data.amount,
       category: data.category,
       type: data.type,
       date: data.date,
       userId: data.userId,
-      lastBalance: data.lastBalance,
+      lastBalance,
       note: data.note,
       spentAt: data.spentAt,
     });
@@ -36,14 +57,87 @@ export class ExpenseRepository {
       })
       .where(eq(ExpenseTransactions.id, id));
   }
-  async addBudgetRecord(data: CreateBudgetSettings) {
-    await db.insert(BudgetSettings).values(data);
+  async addBudgetRecord(
+    data: CreateBudgetSettings & {
+      categories?: Array<{ type: string; amount: number }>;
+      month?: string | null;
+    },
+  ) {
+    const categories = data.categories ?? [];
+    const month = data.month || getCurrentMonthString();
+
+    await db.transaction(async (tx) => {
+      await tx
+        .delete(BudgetSettings)
+        .where(
+          and(
+            eq(BudgetSettings.userId, data.userId),
+            eq(BudgetSettings.category, 'Budget'),
+            eq(BudgetSettings.month, month),
+          ),
+        );
+
+      await tx.insert(BudgetSettings).values({
+        userId: data.userId,
+        category: 'Budget',
+        type: 'Budget',
+        amount: data.amount,
+        limit: data.limit,
+        month,
+      });
+
+      if (categories.length > 0) {
+        await tx.insert(BudgetSettings).values(
+          categories.map((category) => ({
+            userId: data.userId,
+            category: 'Budget' as const,
+            type: category.type,
+            amount: category.amount,
+            limit: category.amount,
+            month,
+          })),
+        );
+      }
+    });
   }
-  async getDashboardRecord() {
+  async getBudgetRecord(userId: number = 1, month?: string) {
+    const targetMonth = month || getCurrentMonthString();
+    return await db
+      .select({
+        type: BudgetSettings.type,
+        amount: BudgetSettings.amount,
+        month: BudgetSettings.month,
+      })
+      .from(BudgetSettings)
+      .where(
+        and(
+          eq(BudgetSettings.userId, userId),
+          eq(BudgetSettings.category, 'Budget'),
+          eq(BudgetSettings.month, targetMonth),
+        ),
+      )
+      .orderBy(desc(BudgetSettings.createdAt));
+  }
+  async getExpenseRecords() {
+    return await db
+      .select()
+      .from(ExpenseTransactions)
+      .where(eq(ExpenseTransactions.userId, 1))
+      .orderBy(desc(ExpenseTransactions.createdAt));
+  }
+  async getDashboardRecord(userId: number = 1, month?: string) {
+    const targetMonth = month || getCurrentMonthString();
+
     const budgetRecords = await db
       .select()
       .from(BudgetSettings)
-      .where(eq(BudgetSettings.userId, 1))
+      .where(
+        and(
+          eq(BudgetSettings.userId, userId),
+          eq(BudgetSettings.type, 'Budget'),
+          eq(BudgetSettings.month, targetMonth),
+        ),
+      )
       .orderBy(desc(BudgetSettings.createdAt))
       .limit(1);
 
@@ -52,7 +146,12 @@ export class ExpenseRepository {
         totalSpent: sum(ExpenseTransactions.amount),
       })
       .from(ExpenseTransactions)
-      .where(eq(ExpenseTransactions.userId, 1));
+      .where(
+        and(
+          eq(ExpenseTransactions.userId, userId),
+          sql`to_char(${ExpenseTransactions.spentAt}, 'YYYY-MM') = ${targetMonth}`,
+        ),
+      );
 
     const totalSpent = Number(expenseTotals[0]?.totalSpent) || 0;
     const totalBudget = budgetRecords[0]?.amount || 0;
@@ -60,20 +159,31 @@ export class ExpenseRepository {
 
     const categories = await db
       .select({
-        category: ExpenseTransactions.category,
-        type: ExpenseTransactions.type,
+        category: BudgetSettings.type,
+        type: BudgetSettings.type,
         budget: sql<number>`COALESCE(${BudgetSettings.amount}, 0)`,
         spent: sum(ExpenseTransactions.amount),
         remaning: sql<number>`COALESCE(${BudgetSettings.amount}, 0) - ${sum(ExpenseTransactions.amount)}`,
       })
-      .from(ExpenseTransactions)
-      .where(eq(ExpenseTransactions.userId, 1))
+      .from(BudgetSettings)
       .leftJoin(
-        BudgetSettings,
-        sql`${ExpenseTransactions.type} = ${BudgetSettings.type}::text`,
+        ExpenseTransactions,
+        and(
+          eq(ExpenseTransactions.userId, BudgetSettings.userId),
+          eq(ExpenseTransactions.type, BudgetSettings.type),
+          sql`to_char(${ExpenseTransactions.spentAt}, 'YYYY-MM') = ${targetMonth}`,
+        ),
       )
-      .groupBy(ExpenseTransactions.category, ExpenseTransactions.type, BudgetSettings.amount)
-      .orderBy(desc(sum(ExpenseTransactions.amount)));
+      .where(
+        and(
+          eq(BudgetSettings.userId, userId),
+          eq(BudgetSettings.category, 'Budget'),
+          ne(BudgetSettings.type, 'Budget'),
+          eq(BudgetSettings.month, targetMonth),
+        ),
+      )
+      .groupBy(BudgetSettings.type, BudgetSettings.amount)
+      .orderBy(desc(BudgetSettings.amount));
 
     return {
       expence: [{ totalBudget, totalSpent, remaining, remaning: remaining }],
@@ -82,7 +192,9 @@ export class ExpenseRepository {
     };
   }
 
-  async getHistoryRecord() {
+  async getHistoryRecord(month?: string) {
+    const targetMonth = month || getCurrentMonthString();
+    const monthFilter = sql`to_char(${ExpenseTransactions.spentAt}, 'YYYY-MM') = ${targetMonth}`;
     const transactions = await db
       .select({
         id: ExpenseTransactions.id,
@@ -94,7 +206,7 @@ export class ExpenseRepository {
         note: ExpenseTransactions.note,
       })
       .from(ExpenseTransactions)
-      .where(eq(ExpenseTransactions.userId, 1))
+      .where(and(eq(ExpenseTransactions.userId, 1), monthFilter))
       .orderBy(desc(ExpenseTransactions.createdAt));
 
     const totalSpentResult = await db
@@ -102,12 +214,12 @@ export class ExpenseRepository {
         monthlySpent: sum(ExpenseTransactions.amount),
       })
       .from(ExpenseTransactions)
-      .where(eq(ExpenseTransactions.userId, 1));
+      .where(and(eq(ExpenseTransactions.userId, 1), monthFilter));
 
     const monthlySpent = Number(totalSpentResult[0]?.monthlySpent) || 0;
 
     const history = transactions.map((item) => {
-      const typeName = item.type || item.category || "personal";
+      const typeName = item.type || item.category || 'personal';
       const amount = Number(item.amount) || 0;
 
       let targetLimit = 1000;
@@ -119,7 +231,7 @@ export class ExpenseRepository {
         targetLimit = Math.ceil(amount / 500) * 500;
       }
 
-      const lessThenLimit = `Keep ${typeName.toLowerCase()} spending under ₹${targetLimit.toLocaleString("en-IN")} this month`;
+      const lessThenLimit = `Keep ${typeName.toLowerCase()} spending under ₹${targetLimit.toLocaleString('en-IN')} this month`;
 
       return {
         ...item,

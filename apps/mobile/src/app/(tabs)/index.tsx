@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Image,
   RefreshControl,
@@ -10,48 +10,75 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@react-native-vector-icons/ionicons";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useExpenseStore } from "@/store/useExpenseStore";
 import { getCategoryIconAndColor } from "@/utils/categoryHelpers";
+import { MonthPicker } from "@/components/MonthPicker";
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
-  const { getExpence, getCategory, getDashboard, dashboardData } = useExpenseStore();
+  const { getExpence, getCategory, getDashboard, dashboardData } =
+    useExpenseStore();
 
-  useEffect(() => {
-    getDashboard();
-    getExpence();
-    getCategory();
-  }, []);
+  const now = useMemo(() => new Date(), []);
+  const currentMonthCode = useMemo(
+    () => `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
+    [now],
+  );
+  const [selectedMonth, setSelectedMonth] = useState(currentMonthCode);
+
+  useFocusEffect(
+    useCallback(() => {
+      getDashboard(selectedMonth);
+      getExpence();
+      getCategory();
+    }, [getDashboard, getExpence, getCategory, selectedMonth]),
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([getDashboard(), getExpence(), getCategory()]);
+    await Promise.all([
+      getDashboard(selectedMonth),
+      getExpence(),
+      getCategory(),
+    ]);
     setRefreshing(false);
-  }, [getDashboard, getExpence, getCategory]);
+  }, [getDashboard, getExpence, getCategory, selectedMonth]);
 
   const categoriesData = dashboardData?.categories;
   const categories =
     categoriesData && Array.isArray(categoriesData)
       ? categoriesData.map((cat: any) => {
-        const rawName = cat.type || cat.name || cat.category || "Uncategorized";
-        const name = (rawName === "Expense" || rawName === "Income") && cat.type && cat.type !== rawName ? cat.type : rawName;
-        const budget = Number(cat.budget) || 0;
-        const spent = Number(cat.spent) || 0;
-        const { icon, color } = getCategoryIconAndColor(name);
-        return {
-          name,
-          icon,
-          budget,
-          spent,
-          color,
-        };
-      })
+          const rawName =
+            cat.type || cat.name || cat.category || "Uncategorized";
+          const name =
+            (rawName === "Expense" || rawName === "Income") &&
+            cat.type &&
+            cat.type !== rawName
+              ? cat.type
+              : rawName;
+          const budget = Number(cat.budget) || 0;
+          const spent = Number(cat.spent) || 0;
+          const { icon, color } = getCategoryIconAndColor(name);
+          return {
+            name,
+            icon,
+            budget,
+            spent,
+            color,
+          };
+        })
       : [];
 
-  const categoryTotalBudget = categories.reduce((sum, item) => sum + item.budget, 0);
-  const categoryTotalSpent = categories.reduce((sum, item) => sum + item.spent, 0);
+  const categoryTotalBudget = categories.reduce(
+    (sum, item) => sum + item.budget,
+    0,
+  );
+  const categoryTotalSpent = categories.reduce(
+    (sum, item) => sum + item.spent,
+    0,
+  );
 
   const expenceSettings = dashboardData?.expence;
   const overallBudgetInfo =
@@ -74,8 +101,9 @@ export default function HomeScreen() {
       ? Number(overallBudgetInfo.remaining)
       : totalBudget - totalSpent;
 
-  const progress = totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0;
-  const monthTitle = `${new Date().toLocaleString("en-US", { month: "long" })} Budget`;
+  const progress =
+    totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0;
+  const monthTitle = `${new Date(`${selectedMonth}-01T00:00:00`).toLocaleString("en-US", { month: "long" })} Budget`;
 
   return (
     <ScrollView
@@ -100,7 +128,7 @@ export default function HomeScreen() {
             resizeMode="contain"
           />
           <View>
-            <Text style={styles.greeting}>Hello, Harivansh  sharma !!!</Text>
+            <Text style={styles.greeting}>Hello, Harivansh sharma</Text>
             <Text style={styles.title}>{monthTitle}</Text>
           </View>
         </View>
@@ -112,6 +140,8 @@ export default function HomeScreen() {
           <Ionicons name="wallet-outline" size={19} color="#94A3B8" />
         </TouchableOpacity>
       </View>
+
+      <MonthPicker selectedMonth={selectedMonth} onSelect={setSelectedMonth} />
 
       {/* Hero Balance Card */}
       <View style={styles.heroCard}>
@@ -151,7 +181,7 @@ export default function HomeScreen() {
           <Text style={styles.emptyText}>No category expenses found yet</Text>
           <TouchableOpacity
             style={styles.emptyButton}
-            onPress={() => router.push("/expense/add" as any)}
+            onPress={() => router.push({ pathname: "/(tabs)/add" } as any)}
           >
             <Text style={styles.emptyButtonText}>+ Add Expense</Text>
           </TouchableOpacity>
@@ -163,7 +193,10 @@ export default function HomeScreen() {
         {categories.map((item) => {
           const left = item.budget - item.spent;
           const isOver = left < 0;
-          const width = item.budget > 0 ? Math.min((item.spent / item.budget) * 100, 100) : 0;
+          const width =
+            item.budget > 0
+              ? Math.min((item.spent / item.budget) * 100, 100)
+              : 0;
 
           return (
             <TouchableOpacity
@@ -213,7 +246,8 @@ export default function HomeScreen() {
       {/* Footer Branding */}
       <View style={styles.footerBranding}>
         <Text style={styles.footerBrandingText}>
-          Powered by <Text style={styles.footerBrandingHighlight}>Hattionline.in</Text>
+          Powered by{" "}
+          <Text style={styles.footerBrandingHighlight}>Hattionline.in</Text>
         </Text>
       </View>
     </ScrollView>

@@ -7,11 +7,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useExpenseStore } from "@/store/useExpenseStore";
 import { getCategoryIconAndColor } from "@/utils/categoryHelpers";
+import { MonthPicker } from "@/components/MonthPicker";
 
 type Transaction = {
   id: string;
@@ -27,6 +28,10 @@ export default function TransactionsScreen() {
   const insets = useSafeAreaInsets();
   const [selectedFilter, setSelectedFilter] = useState("All");
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const date = new Date();
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  });
   const {
     getExpence,
     getCategory,
@@ -37,25 +42,27 @@ export default function TransactionsScreen() {
     dashboardData,
   } = useExpenseStore();
 
-  useEffect(() => {
-    getExpence();
-    getCategory();
-    getHistory();
-    getDashboard();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      getExpence();
+      getCategory();
+      getHistory(selectedMonth);
+      getDashboard(selectedMonth);
+    }, [getExpence, getCategory, getHistory, getDashboard, selectedMonth]),
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([getExpence(), getHistory(), getCategory(), getDashboard()]);
+    await Promise.all([
+      getExpence(),
+      getHistory(selectedMonth),
+      getCategory(),
+      getDashboard(selectedMonth),
+    ]);
     setRefreshing(false);
-  }, [getExpence, getHistory, getCategory, getDashboard]);
+  }, [getExpence, getHistory, getCategory, getDashboard, selectedMonth]);
 
-  const rawList =
-    Array.isArray(historyData) && historyData.length > 0
-      ? historyData
-      : Array.isArray(expenceData)
-        ? expenceData
-        : [];
+  const rawList = Array.isArray(historyData) ? historyData : expenceData;
 
   const transactions: Transaction[] = rawList.map((item: any) => {
     const categoryName = item.type || item.category || "Expense";
@@ -66,10 +73,13 @@ export default function TransactionsScreen() {
     let dateStr = "Recently";
     if (item.date || item.createdAt) {
       try {
-        dateStr = new Date(item.date || item.createdAt).toLocaleDateString("en-IN", {
-          month: "short",
-          day: "numeric",
-        });
+        dateStr = new Date(item.date || item.createdAt).toLocaleDateString(
+          "en-IN",
+          {
+            month: "short",
+            day: "numeric",
+          },
+        );
       } catch (e) {
         dateStr = "Recently";
       }
@@ -101,9 +111,16 @@ export default function TransactionsScreen() {
       ? transactions
       : transactions.filter((item) => item.category === selectedFilter);
 
-  const filterOptions = ["All", ...Array.from(new Set(transactions.map((t) => t.category)))];
-  const adviceText = historyData?.[0]?.lessThenLimit || "Keep personal spending under ₹1,000 this month";
-  const monthYearHeader = `${new Date().toLocaleString("en-US", { month: "long" }).toUpperCase()} ${new Date().getFullYear()}`;
+  const filterOptions = [
+    "All",
+    ...Array.from(new Set(transactions.map((t) => t.category))),
+  ];
+  const adviceText =
+    historyData?.[0]?.lessThenLimit ||
+    "Keep personal spending under ₹1,000 this month";
+  const monthYearHeader = new Date(`${selectedMonth}-01T00:00:00`)
+    .toLocaleDateString("en-US", { month: "long", year: "numeric" })
+    .toUpperCase();
 
   return (
     <ScrollView
@@ -136,6 +153,8 @@ export default function TransactionsScreen() {
         </TouchableOpacity>
       </View>
 
+      <MonthPicker selectedMonth={selectedMonth} onSelect={setSelectedMonth} />
+
       <View style={styles.summaryCard}>
         <Text style={styles.summaryLabel}>SPENT THIS MONTH</Text>
         <Text style={styles.summaryAmount}>
@@ -151,13 +170,13 @@ export default function TransactionsScreen() {
           <View
             style={[
               styles.summaryFill,
-              { width: `${totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0}%` },
+              {
+                width: `${totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0}%`,
+              },
             ]}
           />
         </View>
-        <Text style={styles.summaryHint}>
-          {adviceText}
-        </Text>
+        <Text style={styles.summaryHint}>{adviceText}</Text>
       </View>
 
       <ScrollView
@@ -171,10 +190,7 @@ export default function TransactionsScreen() {
             <TouchableOpacity
               key={`${filter}-${index}`}
               onPress={() => setSelectedFilter(filter)}
-              style={[
-                styles.filter,
-                isSelected && styles.activeFilter,
-              ]}
+              style={[styles.filter, isSelected && styles.activeFilter]}
             >
               <Text
                 style={[
@@ -227,7 +243,8 @@ export default function TransactionsScreen() {
       {/* Footer Branding */}
       <View style={styles.footerBranding}>
         <Text style={styles.footerBrandingText}>
-          Powered by <Text style={styles.footerBrandingHighlight}>Hattionline.in</Text>
+          Powered by{" "}
+          <Text style={styles.footerBrandingHighlight}>Hattionline.in</Text>
         </Text>
       </View>
     </ScrollView>

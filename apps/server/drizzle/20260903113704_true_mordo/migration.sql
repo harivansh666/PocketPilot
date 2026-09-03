@@ -1,0 +1,1 @@
+ALTER TABLE "budget_settings" ADD COLUMN "month" varchar(20);

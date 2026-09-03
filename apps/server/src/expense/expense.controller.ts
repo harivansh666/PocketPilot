@@ -6,6 +6,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ResponseMessage } from '../common/decorators/response.message.decorators';
 import { type CreateBudgetSettings } from './expense.schema';
@@ -14,7 +15,7 @@ import { CreateExpenseDto } from './dto/create-expense.dto';
 
 @Controller('expense')
 export class ExpenseController {
-  constructor(private readonly expenseService: ExpenseService) { }
+  constructor(private readonly expenseService: ExpenseService) {}
   @Post('add')
   @ResponseMessage('Expense added successfully')
   addExpense(@Body() data: CreateExpenseDto) {
@@ -35,15 +36,25 @@ export class ExpenseController {
   addBudget(@Body() data: CreateBudgetSettings) {
     return this.expenseService.addBudget(data);
   }
+  @Get('all')
+  @ResponseMessage('Expenses fetched successfully')
+  getExpenses() {
+    return this.expenseService.getExpenses();
+  }
+  @Get('get-budget')
+  @ResponseMessage('Budget fetched successfully')
+  getBudget(@Query('month') month?: string) {
+    return this.expenseService.getBudget(month);
+  }
   @Get('get-dashboard')
   @ResponseMessage('Dashboard fetched successfully')
-  getDashboard() {
-    return this.expenseService.getDashboard();
+  getDashboard(@Query('month') month?: string) {
+    return this.expenseService.getDashboard(month);
   }
 
   @Get('history')
   @ResponseMessage('History fetched successfully')
-  getHistory() {
-    return this.expenseService.getHistory();
+  getHistory(@Query('month') month?: string) {
+    return this.expenseService.getHistory(month);
   }
 }

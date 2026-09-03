@@ -12,7 +12,7 @@ import {
   View,
   ActivityIndicator,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useExpenseStore } from "@/store/useExpenseStore";
@@ -45,7 +45,11 @@ export default function AddScreen() {
 
   const { category, getCategory, addExpence } = useExpenseStore();
 
-  useEffect(() => { getCategory() }, []);
+  useFocusEffect(
+    useCallback(() => {
+      getCategory();
+    }, [getCategory])
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

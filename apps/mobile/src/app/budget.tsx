@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -11,14 +11,38 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useExpenseStore } from "@/store/useExpenseStore";
+import { MonthPicker } from "@/components/MonthPicker";
 
 export default function BudgetScreen() {
   const insets = useSafeAreaInsets();
-  const { addBudget, category: storeCategories, getCategory, addCategory, getDashboard, dashboardData } = useExpenseStore();
+  const {
+    addBudget,
+    category: storeCategories,
+    getCategory,
+    addCategory,
+    getBudget,
+    budgetData,
+    getDashboard,
+    dashboardData,
+  } = useExpenseStore();
+
+  const now = useMemo(() => new Date(), []);
+  const currentMonthCode = useMemo(
+    () => `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
+    [now],
+  );
+  const [selectedMonth, setSelectedMonth] = useState(currentMonthCode);
+  const monthDisplayLabel = useMemo(
+    () =>
+      new Date(`${selectedMonth}-01T00:00:00`)
+        .toLocaleDateString("en-US", { month: "long", year: "numeric" })
+        .toUpperCase(),
+    [selectedMonth],
+  );
 
   const [monthlyBudget, setMonthlyBudget] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -28,53 +52,94 @@ export default function BudgetScreen() {
   const [newCatName, setNewCatName] = useState("");
   const [isAddingCat, setIsAddingCat] = useState(false);
 
-  useEffect(() => {
-    getCategory();
-    getDashboard();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      getCategory();
+      getBudget(selectedMonth);
+      getDashboard(selectedMonth);
+    }, [getCategory, getBudget, getDashboard, selectedMonth]),
+  );
 
   useEffect(() => {
-    const savedTotalBudget = dashboardData?.expence?.[0]?.totalBudget;
-    if (savedTotalBudget && Number(savedTotalBudget) > 0) {
-      setMonthlyBudget(String(savedTotalBudget));
+    if (Array.isArray(budgetData)) {
+      const savedBudget = budgetData.find(
+        (item: any) =>
+          item?.type?.toLowerCase() === "budget" &&
+          (!item?.month || item.month === selectedMonth),
+      );
+      if (savedBudget?.amount !== undefined && savedBudget?.amount !== null) {
+        setMonthlyBudget(String(savedBudget.amount));
+      }
     }
-  }, [dashboardData]);
+  }, [budgetData, selectedMonth]);
 
   const activeCategories = useMemo(() => {
-    if (Array.isArray(storeCategories) && storeCategories.length > 0) {
-      const dashboardCategoriesMap = new Map();
-      if (Array.isArray(dashboardData?.categories)) {
-        dashboardData.categories.forEach((cat: any) => {
-          const key = cat.type || cat.name || cat.category;
-          if (key) dashboardCategoriesMap.set(key.toLowerCase(), Number(cat.budget) || 0);
-        });
-      }
-
-      return storeCategories.map((c: any) => {
-        const label = c.label || c.name || "Category";
-        const savedLimit = dashboardCategoriesMap.get(label.toLowerCase());
-        return {
-          label,
-          icon: c.icon || "pricetag",
-          color: c.color || "#4ADE80",
-          initial: savedLimit ? String(savedLimit) : "0",
-        };
+    const budgetCategoriesMap = new Map<string, number>();
+    if (Array.isArray(budgetData)) {
+      budgetData.forEach((item: any) => {
+        const key = item?.type;
+        if (key && key.toLowerCase() !== "budget") {
+          budgetCategoriesMap.set(key.toLowerCase(), Number(item.amount) || 0);
+        }
       });
     }
-    return [];
-  }, [storeCategories, dashboardData]);
+    const categories: any[] = Array.isArray(storeCategories)
+      ? [...storeCategories]
+      : [];
+
+    if (Array.isArray(budgetData)) {
+      budgetData.forEach((item: any) => {
+        const label = item?.type;
+        if (
+          label &&
+          label.toLowerCase() !== "budget" &&
+          (!item?.month || item.month === selectedMonth) &&
+          !categories.some(
+            (category: any) =>
+              (category.label || category.name || "").toLowerCase() ===
+              label.toLowerCase(),
+          )
+        ) {
+          categories.push({ name: label });
+        }
+      });
+    }
+
+    return categories.map((c: any) => {
+      const label = c.label || c.name || "Category";
+      const savedLimit = budgetCategoriesMap.get(label.toLowerCase());
+      return {
+        label,
+        icon: c.icon || "pricetag",
+        color: c.color || "#4ADE80",
+        initial: savedLimit !== undefined ? String(savedLimit) : "0",
+      };
+    });
+  }, [storeCategories, budgetData, selectedMonth]);
 
   const [limits, setLimits] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setLimits((prev) => {
       const next = { ...prev };
+      let updated = false;
+
       activeCategories.forEach((cat) => {
-        if (next[cat.label] === undefined) {
+        const currentVal = next[cat.label];
+        if (currentVal === undefined) {
           next[cat.label] = cat.initial || "0";
+          updated = true;
+        } else if (
+          (currentVal === "0" || currentVal === "") &&
+          cat.initial &&
+          cat.initial !== "0"
+        ) {
+          next[cat.label] = cat.initial;
+          updated = true;
         }
       });
-      return next;
+
+      return updated ? next : prev;
     });
   }, [activeCategories]);
 
@@ -95,14 +160,26 @@ export default function BudgetScreen() {
     setIsSaving(true);
     const success = await addBudget({
       userId: 1,
+      category: "Budget",
       type: "Budget",
       amount: budget,
       limit: totalLimits,
+      month: selectedMonth,
+      categories: activeCategories.map((category) => ({
+        type: category.label,
+        amount: Number(limits[category.label]) || 0,
+      })),
     });
     setIsSaving(false);
     if (success) {
       router.back();
     }
+  };
+
+  const handleMonthSelect = (month: string) => {
+    setSelectedMonth(month);
+    setMonthlyBudget("");
+    setLimits({});
   };
 
   const handleAddCategory = async () => {
@@ -137,7 +214,7 @@ export default function BudgetScreen() {
       >
         <View style={styles.header}>
           <View>
-            <Text style={styles.eyebrow}>MARCH 2026</Text>
+            <Text style={styles.eyebrow}>{monthDisplayLabel}</Text>
             <Text style={styles.title}>Budget setup</Text>
           </View>
           <TouchableOpacity
@@ -148,6 +225,11 @@ export default function BudgetScreen() {
             <Ionicons name="close" size={22} color="#CBD5E1" />
           </TouchableOpacity>
         </View>
+
+        <MonthPicker
+          selectedMonth={selectedMonth}
+          onSelect={handleMonthSelect}
+        />
 
         <View style={styles.heroCard}>
           <Text style={styles.label}>MONTHLY SPENDING LIMIT</Text>
@@ -233,7 +315,10 @@ export default function BudgetScreen() {
         </View>
 
         <TouchableOpacity
-          style={[styles.saveButton, (isOverBudget || budget <= 0 || isSaving) && styles.disabledButton]}
+          style={[
+            styles.saveButton,
+            (isOverBudget || budget <= 0 || isSaving) && styles.disabledButton,
+          ]}
           disabled={isOverBudget || budget <= 0 || isSaving}
           onPress={handleSaveBudget}
         >
@@ -284,7 +369,10 @@ export default function BudgetScreen() {
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.createBtn, (!newCatName.trim() || isAddingCat) && styles.disabledButton]}
+                style={[
+                  styles.createBtn,
+                  (!newCatName.trim() || isAddingCat) && styles.disabledButton,
+                ]}
                 disabled={!newCatName.trim() || isAddingCat}
                 onPress={handleAddCategory}
               >
