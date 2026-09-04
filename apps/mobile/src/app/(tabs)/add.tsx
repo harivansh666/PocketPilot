@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
@@ -23,7 +23,6 @@ const categories = [
   { label: "Petrol", icon: "car", color: "#FBBF24" },
   { label: "Personal", icon: "card", color: "#A78BFA" },
   { label: "Personal", icon: "card", color: "#A78BFA" },
-
 ];
 
 export default function AddScreen() {
@@ -47,8 +46,19 @@ export default function AddScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      const today = new Date();
+      setExpense({
+        userId: 1,
+        amount: "",
+        selectedCategory: "Expense",
+        note: "",
+        lastbalance: "",
+        date: today,
+      });
+      setCalendarMonth(today);
+      setCalendarVisible(false);
       getCategory();
-    }, [getCategory])
+    }, [getCategory]),
   );
 
   const onRefresh = useCallback(async () => {
@@ -156,10 +166,10 @@ export default function AddScreen() {
         <View style={styles.categoryGrid}>
           {(Array.isArray(category) && category.length > 0
             ? category.map((cat: any) => ({
-              label: cat.name || cat.label || "Category",
-              icon: cat.icon || "pricetag-outline",
-              color: cat.color || "#4ADE80",
-            }))
+                label: cat.name || cat.label || "Category",
+                icon: cat.icon || "pricetag-outline",
+                color: cat.color || "#4ADE80",
+              }))
             : categories
           ).map((cat: any, index: number) => {
             const label = cat.label;
@@ -167,7 +177,9 @@ export default function AddScreen() {
             return (
               <TouchableOpacity
                 key={cat.id || `${label}-${index}`}
-                onPress={() => setExpense({ ...expense, selectedCategory: label })}
+                onPress={() =>
+                  setExpense({ ...expense, selectedCategory: label })
+                }
                 style={[
                   styles.categoryCard,
                   isSelected && styles.selectedCategory,
@@ -247,7 +259,10 @@ export default function AddScreen() {
         </View>
 
         <TouchableOpacity
-          style={[styles.saveButton, (!isValid || isSaving) && styles.disabledButton]}
+          style={[
+            styles.saveButton,
+            (!isValid || isSaving) && styles.disabledButton,
+          ]}
           onPress={saveExpense}
           disabled={!isValid || isSaving}
         >
@@ -381,6 +396,7 @@ export default function AddScreen() {
                           calendarMonth.getFullYear(),
                           calendarMonth.getMonth(),
                           day,
+                          12,
                         ),
                       });
                       setCalendarVisible(false);

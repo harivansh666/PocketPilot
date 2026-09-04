@@ -1,6 +1,7 @@
 import { View, TouchableOpacity, StyleSheet } from "react-native";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useExpenseStore } from "@/store/useExpenseStore";
 
 type CustomTabBarProps = {
   state: {
@@ -27,6 +28,8 @@ type IconName =
 
 export default function CustomTabBar({ state, navigation }: CustomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { getExpence, getCategory, getHistory, getDashboard } =
+    useExpenseStore();
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom || 12 }]}>
@@ -40,6 +43,18 @@ export default function CustomTabBar({ state, navigation }: CustomTabBarProps) {
             target: route.key,
             canPreventDefault: true,
           });
+          if (isFocused) {
+            if (route.name === "index") {
+              getDashboard();
+              getExpence();
+              getCategory();
+            } else if (route.name === "transactions") {
+              getExpence();
+              getCategory();
+              getHistory();
+              getDashboard();
+            }
+          }
           if (!isFocused && !event.defaultPrevented) {
             navigation.navigate(route.name);
           }

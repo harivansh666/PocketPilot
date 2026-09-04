@@ -62,7 +62,20 @@ export default function TransactionsScreen() {
     setRefreshing(false);
   }, [getExpence, getHistory, getCategory, getDashboard, selectedMonth]);
 
-  const rawList = Array.isArray(historyData) ? historyData : expenceData;
+  const rawList =
+    Array.isArray(historyData) && historyData.length > 0
+      ? historyData
+      : Array.isArray(expenceData)
+        ? expenceData.filter((item: any) => {
+            const rawDate = item.date || item.spentAt || item.createdAt;
+            if (!rawDate) return false;
+            const date = new Date(rawDate);
+            const itemMonth = `${date.getFullYear()}-${String(
+              date.getMonth() + 1,
+            ).padStart(2, "0")}`;
+            return itemMonth === selectedMonth;
+          })
+        : [];
 
   const transactions: Transaction[] = rawList.map((item: any) => {
     const categoryName = item.type || item.category || "Expense";

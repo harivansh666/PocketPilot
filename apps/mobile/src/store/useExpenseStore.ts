@@ -22,7 +22,7 @@ type ExpenceState = {
   getHistory: (month?: string) => Promise<void>;
 };
 
-export const useExpenseStore = create<ExpenceState>((set) => ({
+export const useExpenseStore = create<ExpenceState>((set, get) => ({
   expenceData: [],
   category: [],
   budgetData: [],
@@ -48,6 +48,11 @@ export const useExpenseStore = create<ExpenceState>((set) => ({
         visibilityTime: 500,
       });
       set((state) => ({ expenceData: [...state.expenceData, newExpense] }));
+      const expenseDate = new Date(data.date);
+      const month = `${expenseDate.getFullYear()}-${String(
+        expenseDate.getMonth() + 1,
+      ).padStart(2, "0")}`;
+      await get().getHistory(month);
       return true;
     } catch (error: any) {
       Toast.show({

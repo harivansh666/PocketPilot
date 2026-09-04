@@ -31,16 +31,21 @@ export class ExpenseRepository {
 
     const lastBalance = data.lastBalance ?? lastBalanceRow?.lastBalance ?? 0;
 
-    await db.insert(ExpenseTransactions).values({
-      amount: data.amount,
-      category: data.category,
-      type: data.type,
-      date: data.date,
-      userId: data.userId,
-      lastBalance,
-      note: data.note,
-      spentAt: data.spentAt,
-    });
+    const [createdExpense] = await db
+      .insert(ExpenseTransactions)
+      .values({
+        amount: data.amount,
+        category: data.category,
+        type: data.type,
+        date: data.date,
+        userId: data.userId,
+        lastBalance,
+        note: data.note,
+        spentAt: data.spentAt,
+      })
+      .returning();
+
+    return createdExpense;
   }
   async updateExpenseRecord(data: CreateExpenseDto, id: string) {
     await db
@@ -149,7 +154,7 @@ export class ExpenseRepository {
       .where(
         and(
           eq(ExpenseTransactions.userId, userId),
-          sql`to_char(${ExpenseTransactions.spentAt}, 'YYYY-MM') = ${targetMonth}`,
+          sql`to_char(${ExpenseTransactions.date}, 'YYYY-MM') = ${targetMonth}`,
         ),
       );
 
@@ -171,7 +176,7 @@ export class ExpenseRepository {
         and(
           eq(ExpenseTransactions.userId, BudgetSettings.userId),
           eq(ExpenseTransactions.type, BudgetSettings.type),
-          sql`to_char(${ExpenseTransactions.spentAt}, 'YYYY-MM') = ${targetMonth}`,
+          sql`to_char(${ExpenseTransactions.date}, 'YYYY-MM') = ${targetMonth}`,
         ),
       )
       .where(
@@ -194,7 +199,7 @@ export class ExpenseRepository {
 
   async getHistoryRecord(month?: string) {
     const targetMonth = month || getCurrentMonthString();
-    const monthFilter = sql`to_char(${ExpenseTransactions.spentAt}, 'YYYY-MM') = ${targetMonth}`;
+    const monthFilter = sql`to_char(${ExpenseTransactions.date}, 'YYYY-MM') = ${targetMonth}`;
     const transactions = await db
       .select({
         id: ExpenseTransactions.id,

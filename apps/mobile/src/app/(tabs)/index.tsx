@@ -50,25 +50,25 @@ export default function HomeScreen() {
   const categories =
     categoriesData && Array.isArray(categoriesData)
       ? categoriesData.map((cat: any) => {
-        const rawName =
-          cat.type || cat.name || cat.category || "Uncategorized";
-        const name =
-          (rawName === "Expense" || rawName === "Income") &&
+          const rawName =
+            cat.type || cat.name || cat.category || "Uncategorized";
+          const name =
+            (rawName === "Expense" || rawName === "Income") &&
             cat.type &&
             cat.type !== rawName
-            ? cat.type
-            : rawName;
-        const budget = Number(cat.budget) || 0;
-        const spent = Number(cat.spent) || 0;
-        const { icon, color } = getCategoryIconAndColor(name);
-        return {
-          name,
-          icon,
-          budget,
-          spent,
-          color,
-        };
-      })
+              ? cat.type
+              : rawName;
+          const budget = Number(cat.budget) || 0;
+          const spent = Number(cat.spent) || 0;
+          const { icon, color } = getCategoryIconAndColor(name);
+          return {
+            name,
+            icon,
+            budget,
+            spent,
+            color,
+          };
+        })
       : [];
 
   const categoryTotalBudget = categories.reduce(
@@ -128,7 +128,7 @@ export default function HomeScreen() {
             resizeMode="contain"
           />
           <View>
-            <Text style={styles.greeting}>Hello, Harivansh sharma!!!</Text>
+            <Text style={styles.greeting}>Hello, Harivansh sharma</Text>
             <Text style={styles.title}>{monthTitle}</Text>
           </View>
         </View>
@@ -247,7 +247,7 @@ export default function HomeScreen() {
       <View style={styles.footerBranding}>
         <Text style={styles.footerBrandingText}>
           Powered by{" "}
-          <Text style={styles.footerBrandingHighlight}>Hattionline.in vansh sharma</Text>
+          <Text style={styles.footerBrandingHighlight}>Hattionline.in</Text>
         </Text>
       </View>
     </ScrollView>
@@ -414,33 +414,33 @@ const styles = StyleSheet.create({
     width: "48%",
     backgroundColor: "#151E32",
     borderRadius: 16,
-    padding: 14,
-    marginBottom: 12,
+    padding: 11,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: "#1F2A44",
   },
 
   iconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 9,
+    width: 28,
+    height: 28,
+    borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 7,
   },
 
   gridTitle: {
     color: "#F1F5F9",
     fontSize: 14,
     fontWeight: "600",
-    marginBottom: 4,
+    marginBottom: 2,
   },
 
   gridLeft: {
     color: "#94A3B8",
     fontSize: 12,
     fontWeight: "700",
-    marginBottom: 10,
+    marginBottom: 7,
   },
 
   overText: {
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#1E293B",
     borderRadius: 4,
     overflow: "hidden",
-    marginBottom: 6,
+    marginBottom: 4,
   },
 
   progressFillSmall: {
