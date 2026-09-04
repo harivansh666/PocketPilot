@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as crypto from 'crypto';
 import db from '../db';
 import { otaUpdatesTable } from '../db/schema/otaUpdatesTable';
+import { otaAssetsTable } from '../db/schema/otaAssetsTable';
 import { eq, and, desc } from 'drizzle-orm';
 import { AssetUploadDto, PublishUpdateDto, RollbackUpdateDto } from './dto/publish-update.dto';
 
@@ -164,7 +165,31 @@ export class UpdatesService {
     }
   }
 
-  uploadAsset(dto: AssetUploadDto) {
+  async uploadAsset(dto: AssetUploadDto) {
+    if (process.env.DATABASE_URL) {
+      try {
+        const existing = await db
+          .select()
+          .from(otaAssetsTable)
+          .where(eq(otaAssetsTable.assetPath, dto.path));
+
+        if (existing.length > 0) {
+          await db
+            .update(otaAssetsTable)
+            .set({ contentBase64: dto.contentBase64, contentType: dto.contentType })
+            .where(eq(otaAssetsTable.id, existing[0].id));
+        } else {
+          await db.insert(otaAssetsTable).values({
+            assetPath: dto.path,
+            contentBase64: dto.contentBase64,
+            contentType: dto.contentType,
+          });
+        }
+      } catch (e) {
+        this.logger.error('Failed to save asset to Neon Database:', e.message);
+      }
+    }
+
     try {
       const targetPath = path.join(this.assetsDir, dto.path);
       const targetDir = path.dirname(targetPath);
@@ -179,7 +204,31 @@ export class UpdatesService {
     return { success: true, path: dto.path };
   }
 
-  uploadAssetBuffer(assetPath: string, buffer: Buffer) {
+  async uploadAssetBuffer(assetPath: string, buffer: Buffer) {
+    if (process.env.DATABASE_URL) {
+      try {
+        const contentBase64 = buffer.toString('base64');
+        const existing = await db
+          .select()
+          .from(otaAssetsTable)
+          .where(eq(otaAssetsTable.assetPath, assetPath));
+
+        if (existing.length > 0) {
+          await db
+            .update(otaAssetsTable)
+            .set({ contentBase64 })
+            .where(eq(otaAssetsTable.id, existing[0].id));
+        } else {
+          await db.insert(otaAssetsTable).values({
+            assetPath,
+            contentBase64,
+          });
+        }
+      } catch (e) {
+        this.logger.error('Failed to save asset buffer to Neon Database:', e.message);
+      }
+    }
+
     try {
       const targetPath = path.join(this.assetsDir, assetPath);
       const targetDir = path.dirname(targetPath);
@@ -351,6 +400,25 @@ export class UpdatesService {
     const fullPath = path.join(this.assetsDir, assetPath);
     if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
       return fullPath;
+    }
+    return null;
+  }
+
+  async getAssetFromDb(assetPath: string): Promise<Buffer | null> {
+    if (process.env.DATABASE_URL) {
+      try {
+        const records = await db
+          .select()
+          .from(otaAssetsTable)
+          .where(eq(otaAssetsTable.assetPath, assetPath))
+          .limit(1);
+
+        if (records.length > 0) {
+          return Buffer.from(records[0].contentBase64, 'base64');
+        }
+      } catch (e) {
+        this.logger.error('Database asset lookup failed:', e.message);
+      }
     }
     return null;
   }

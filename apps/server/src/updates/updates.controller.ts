@@ -68,8 +68,21 @@ export class UpdatesController {
   ) {
     // Extract asset path after /api/updates/assets/
     const urlPath = req.path.replace(/^\/api\/updates\/assets\//, '').replace(/^\/updates\/assets\//, '');
-    const filePath = this.updatesService.getAssetFilePath(urlPath);
+    
+    // 1. Try Neon Database first
+    const dbBuffer = await this.updatesService.getAssetFromDb(urlPath);
+    if (dbBuffer) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      if (urlPath.endsWith('.hbc') || urlPath.endsWith('.js')) res.setHeader('Content-Type', 'application/javascript');
+      else if (urlPath.endsWith('.png')) res.setHeader('Content-Type', 'image/png');
+      else if (urlPath.endsWith('.jpg') || urlPath.endsWith('.jpeg')) res.setHeader('Content-Type', 'image/jpeg');
+      else if (urlPath.endsWith('.ttf')) res.setHeader('Content-Type', 'font/ttf');
+      else res.setHeader('Content-Type', 'application/octet-stream');
+      return res.status(200).send(dbBuffer);
+    }
 
+    // 2. Local File Fallback
+    const filePath = this.updatesService.getAssetFilePath(urlPath);
     if (!filePath) {
       throw new NotFoundException(`Asset ${urlPath} not found`);
     }
