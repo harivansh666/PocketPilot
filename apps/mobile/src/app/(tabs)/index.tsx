@@ -50,25 +50,25 @@ export default function HomeScreen() {
   const categories =
     categoriesData && Array.isArray(categoriesData)
       ? categoriesData.map((cat: any) => {
-          const rawName =
-            cat.type || cat.name || cat.category || "Uncategorized";
-          const name =
-            (rawName === "Expense" || rawName === "Income") &&
+        const rawName =
+          cat.type || cat.name || cat.category || "Uncategorized";
+        const name =
+          (rawName === "Expense" || rawName === "Income") &&
             cat.type &&
             cat.type !== rawName
-              ? cat.type
-              : rawName;
-          const budget = Number(cat.budget) || 0;
-          const spent = Number(cat.spent) || 0;
-          const { icon, color } = getCategoryIconAndColor(name);
-          return {
-            name,
-            icon,
-            budget,
-            spent,
-            color,
-          };
-        })
+            ? cat.type
+            : rawName;
+        const budget = Number(cat.budget) || 0;
+        const spent = Number(cat.spent) || 0;
+        const { icon, color } = getCategoryIconAndColor(name);
+        return {
+          name,
+          icon,
+          budget,
+          spent,
+          color,
+        };
+      })
       : [];
 
   const categoryTotalBudget = categories.reduce(
@@ -247,7 +247,7 @@ export default function HomeScreen() {
       <View style={styles.footerBranding}>
         <Text style={styles.footerBrandingText}>
           Powered by{" "}
-          <Text style={styles.footerBrandingHighlight}>Hattionline.in</Text>
+          <Text style={styles.footerBrandingHighlight}>Hattionline.in vansh sharma</Text>
         </Text>
       </View>
     </ScrollView>
