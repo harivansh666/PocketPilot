@@ -9,7 +9,7 @@
     "@react-navigation/bottom-tabs": "^7.18.16",
     "axios": "^1.20.0",
     "expo": "~57.0.14",
-    "expo-constants": "~57.0.12",
+    "expo-constants": "~57.0.16",
     "expo-device": "~57.0.1",
     "expo-font": "~57.0.1",
     "expo-glass-effect": "~57.0.1",
@@ -39,7 +39,7 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "dev": "expo start",
+    "dev": "node scripts/set-api-ip.js && expo start",
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "build": "expo build:android",
