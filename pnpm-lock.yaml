@@ -343,6 +343,9 @@ importers:
       drizzle-orm:
         specifier: 1.0.0-rc.4
         version: 1.0.0-rc.4(@sinclair/typebox@0.34.52)(@types/pg@8.23.1)(pg@8.23.0)(zod@4.4.3)
+      express:
+        specifier: ^5.2.1
+        version: 5.2.1(supports-color@10.2.2)
       node-fetch:
         specifier: ^3.3.2
         version: 3.3.2
