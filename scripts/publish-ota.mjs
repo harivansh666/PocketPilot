@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 
-// Helper to load env variables natively
+// Helper to load env variables natively from multiple locations
 function loadEnv(envPath) {
   if (fs.existsSync(envPath)) {
     const lines = fs.readFileSync(envPath, 'utf-8').split('\n');
@@ -25,19 +25,52 @@ function loadEnv(envPath) {
   }
 }
 
+// Load env files in priority order
 loadEnv(path.join(rootDir, '.env'));
 loadEnv(path.join(rootDir, 'apps', 'mobile', '.env'));
+loadEnv(path.join(rootDir, 'apps', 'server', '.env'));
 
-const vpsUrl = (process.env.OTA_VPS_URL || 'https://pocketpilotapp.vercel.app').replace(/\/$/, '');
+// Determine mode (production vs development/local)
+const mode = (
+  process.env.MODE ||
+  process.env.EXPO_PUBLIC_MODE ||
+  process.env.EXPO_MODE ||
+  'production'
+).toLowerCase();
+
+const prodUrl = process.env.PROD_API_URL || process.env.EXPO_PUBLIC_API_URL_PRODUCTION || 'https://pocketpilotapp.vercel.app';
+const localUrl = process.env.LOCAL_API_URL || process.env.EXPO_PUBLIC_API_URL_LOCAL || process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
+
+const rawTargetUrl = (mode === 'production' || mode === 'prod') ? prodUrl : localUrl;
+
+function buildEndpointUrl(baseUrl, endpoint) {
+  const cleanBase = baseUrl.replace(/\/$/, '');
+  const cleanEndpoint = endpoint.replace(/^\//, '');
+
+  if (cleanBase.endsWith('/api') && cleanEndpoint.startsWith('api/')) {
+    return `${cleanBase}/${cleanEndpoint.slice(4)}`;
+  }
+  if (!cleanBase.endsWith('/api') && !cleanEndpoint.startsWith('api/')) {
+    return `${cleanBase}/api/${cleanEndpoint}`;
+  }
+  return `${cleanBase}/${cleanEndpoint}`;
+}
+
+const vpsUrl = rawTargetUrl.replace(/\/$/, '');
+const uploadAssetUrl = buildEndpointUrl(vpsUrl, '/api/updates/upload-asset');
+const publishUrl = buildEndpointUrl(vpsUrl, '/api/updates/publish');
 const otaSecret = process.env.OTA_ADMIN_SECRET || 'pocketpilot-ota-secret-key';
+
 const mobileDir = path.join(rootDir, 'apps', 'mobile');
 const distDir = path.join(mobileDir, 'dist');
 const metadataPath = path.join(distDir, 'metadata.json');
 
 console.log('🚀 Starting Self-Hosted OTA Update Process...');
+console.log(`📌 Environment MODE: ${mode.toUpperCase()}`);
+console.log(`🌐 Base Server URL: ${vpsUrl}`);
 
 // Step 1: Export JS/TS/UI bundle via Expo CLI
-console.log('📦 Step 1: Exporting Android bundle with Expo CLI...');
+console.log('\n📦 Step 1: Exporting Android bundle with Expo CLI...');
 try {
   execSync('npx expo export --platform android', {
     cwd: mobileDir,
@@ -54,7 +87,7 @@ if (!fs.existsSync(metadataPath)) {
 }
 
 // Step 2: Parse metadata & read app configuration
-console.log('🔍 Step 2: Processing exported bundle and assets...');
+console.log('\n🔍 Step 2: Processing exported bundle and assets...');
 const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8'));
 const appJsonPath = path.join(mobileDir, 'app.json');
 const appJson = JSON.parse(fs.readFileSync(appJsonPath, 'utf-8'));
@@ -99,11 +132,12 @@ if (!fs.existsSync(bundleAbsPath)) {
 const bundleBuffer = fs.readFileSync(bundleAbsPath);
 const bundleHash = computeBase64UrlHash(bundleBuffer);
 const bundleKey = path.basename(bundleRelPath, path.extname(bundleRelPath));
+const assetBaseUrl = buildEndpointUrl(vpsUrl, '/api/updates/assets');
 
 const launchAsset = {
   key: bundleKey,
   contentType: 'application/javascript',
-  url: `${vpsUrl}/api/updates/assets/${bundleRelPath}`,
+  url: `${assetBaseUrl}/${bundleRelPath}`,
   hash: bundleHash,
   fileExtension: path.extname(bundleRelPath) || '.hbc',
 };
@@ -140,7 +174,7 @@ for (const asset of androidMetadata.assets || []) {
   assets.push({
     key: assetKey,
     contentType,
-    url: `${vpsUrl}/api/updates/assets/${assetRelPath}`,
+    url: `${assetBaseUrl}/${assetRelPath}`,
     hash: assetHash,
     fileExtension: asset.ext ? `.${asset.ext}` : '',
   });
@@ -155,60 +189,55 @@ for (const asset of androidMetadata.assets || []) {
   });
 }
 
-const payload = {
-  runtimeVersion,
-  platform: 'android',
-  channel: 'production',
-  launchAsset,
-  assets,
-  assetFiles,
-  metadata: {
-    publishedAt: new Date().toISOString(),
-    tool: 'pnpm mobile:update',
-  },
-};
-
-// Step 3: Write locally to apps/server/uploads/updates for fallback/local VPS storage
+// Step 3: Write locally to apps/server/uploads/updates for fallback/local storage
 const serverUploadsDir = path.join(rootDir, 'apps', 'server', 'uploads', 'updates');
 const localAssetsDir = path.join(serverUploadsDir, 'assets');
 const localManifestsDir = path.join(serverUploadsDir, 'manifests');
 
-if (!fs.existsSync(localAssetsDir)) fs.mkdirSync(localAssetsDir, { recursive: true });
-if (!fs.existsSync(localManifestsDir)) fs.mkdirSync(localManifestsDir, { recursive: true });
+try {
+  if (!fs.existsSync(localAssetsDir)) fs.mkdirSync(localAssetsDir, { recursive: true });
+  if (!fs.existsSync(localManifestsDir)) fs.mkdirSync(localManifestsDir, { recursive: true });
 
-// Copy assets locally
-for (const file of assetFiles) {
-  const dest = path.join(localAssetsDir, file.path);
-  const destDir = path.dirname(dest);
-  if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
-  fs.writeFileSync(dest, Buffer.from(file.contentBase64, 'base64'));
+  for (const file of assetFiles) {
+    const dest = path.join(localAssetsDir, file.path);
+    const destDir = path.dirname(dest);
+    if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
+    fs.writeFileSync(dest, Buffer.from(file.contentBase64, 'base64'));
+  }
+  console.log(`💾 Saved ${assetFiles.length} asset files to local server uploads directory.`);
+} catch (e) {
+  // Ignored if local folder write fails
 }
 
-console.log(`💾 Saved ${assetFiles.length} asset files to local VPS uploads directory.`);
-
-// Step 4: Publish to VPS HTTP Endpoint
-console.log(`📡 Step 4: Uploading assets and publishing manifest to VPS (${vpsUrl})...`);
+// Step 4: Upload Assets & Publish Manifest to Server API
+console.log(`\n📡 Step 4: Uploading assets and publishing manifest to server...`);
+console.log(`   Upload URL: ${uploadAssetUrl}`);
+console.log(`   Publish URL: ${publishUrl}`);
 
 try {
   let uploadedCount = 0;
   for (const file of assetFiles) {
     const rawBuffer = Buffer.from(file.contentBase64, 'base64');
-    const uploadRes = await fetch(`${vpsUrl}/api/updates/upload-asset`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/octet-stream',
-        'x-ota-secret': otaSecret,
-        'x-asset-path': file.path,
-      },
-      body: rawBuffer,
-    });
-    if (!uploadRes.ok) {
-      console.warn(`⚠️ Failed to upload asset ${file.path} (${uploadRes.status})`);
-    } else {
-      uploadedCount++;
+    try {
+      const uploadRes = await fetch(uploadAssetUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/octet-stream',
+          'x-ota-secret': otaSecret,
+          'x-asset-path': file.path,
+        },
+        body: rawBuffer,
+      });
+      if (!uploadRes.ok) {
+        console.warn(`⚠️ Asset upload notice for ${file.path} (${uploadRes.status})`);
+      } else {
+        uploadedCount++;
+      }
+    } catch (e) {
+      console.warn(`⚠️ Asset upload warning for ${file.path}: ${e.message}`);
     }
   }
-  console.log(`⬆️ Uploaded ${uploadedCount}/${assetFiles.length} assets to VPS.`);
+  console.log(`⬆️ Uploaded ${uploadedCount}/${assetFiles.length} assets.`);
 
   const publishPayload = {
     runtimeVersion,
@@ -219,10 +248,11 @@ try {
     metadata: {
       publishedAt: new Date().toISOString(),
       tool: 'pnpm mobile:update',
+      mode,
     },
   };
 
-  const response = await fetch(`${vpsUrl}/api/updates/publish`, {
+  const response = await fetch(publishUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -238,13 +268,12 @@ try {
     console.log(`   Runtime Version: ${runtimeVersion}`);
     console.log(`   Platform: android`);
     console.log(`   Channel: production`);
-    console.log(`   Target VPS URL: ${vpsUrl}\n`);
+    console.log(`   Environment Mode: ${mode.toUpperCase()}`);
+    console.log(`   Target Server URL: ${vpsUrl}\n`);
   } else {
     const errorText = await response.text();
-    console.warn(`⚠️ Remote HTTP publish received status ${response.status}: ${errorText}`);
-    console.log('ℹ️ Local VPS upload directory updated successfully as fallback.');
+    console.warn(`⚠️ Remote HTTP publish status ${response.status}: ${errorText}`);
   }
 } catch (err) {
-  console.warn(`⚠️ Could not connect to remote VPS endpoint (${vpsUrl}): ${err.message}`);
-  console.log('ℹ️ Local VPS upload directory updated successfully as fallback.');
+  console.warn(`⚠️ Could not reach server endpoint (${vpsUrl}): ${err.message}`);
 }
