@@ -1,82 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, Button, StyleSheet } from 'react-native';
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import * as Updates from 'expo-updates';
-import Constants from 'expo-constants';
-import axios from 'axios';
-
-// Adjust this URL if your backend runs elsewhere
-const SERVER_URL = 'https://pocketpilotapp.vercel.app/api/v1/update';
 
 export default function RootLayout() {
-  const [checking, setChecking] = useState(true);
-  const [info, setInfo] = useState<{ updateAvailable: boolean; message: string } | null>(null);
-
   useEffect(() => {
     (async () => {
+      if (__DEV__) return;
       try {
-        const resp = await axios.get(SERVER_URL, {
-          params: { runtimeVersion: Constants.expoConfig?.runtimeVersion ?? 'unknown' },
-        });
-        const { updateAvailable, message } = resp.data;
-        setInfo({ updateAvailable, message });
-        if (updateAvailable) {
-          const result = await Updates.checkForUpdateAsync();
-          if (result.isAvailable) {
-            await Updates.fetchUpdateAsync(); // download OTA bundle
-            // Notify the user that the update has been downloaded
-            Toast.show({ type: 'success', text1: 'Update downloaded! Tap "Apply now" to refresh.' });
-          } else {
-            // No OTA update available
-            console.log('No OTA update found on channel');
-          }
+        const update = await Updates.checkForUpdateAsync();
+        if (update.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          Toast.show({ type: 'info', text1: 'Applying update…' });
+          await Updates.reloadAsync();
         }
       } catch (e) {
-        console.error('Update check failed', e);
-      } finally {
-        setChecking(false);
+        console.log('OTA update check error or offline fallback:', e);
       }
     })();
   }, []);
-
-  if (checking) {
-    return (
-      <SafeAreaProvider style={{ backgroundColor: '#0B1120' }}>
-        <View style={styles.center}>
-          <ActivityIndicator size="large" />
-          <Text style={styles.msg}>Checking for updates…</Text>
-        </View>
-        <Toast />
-      </SafeAreaProvider>
-    );
-  }
-
-  if (info?.updateAvailable) {
-    return (
-      <SafeAreaProvider style={{ backgroundColor: '#0B1120' }}>
-        <View style={styles.banner}>
-          <Text style={styles.bannerMsg}>{info.message}</Text>
-          <Button title="Apply now" onPress={async () => {
-            await Updates.reloadAsync();
-            // Show a toast after the app reloads (will appear on next load)
-            Toast.show({ type: 'info', text1: 'App reloaded with latest update.' });
-          }} />
-        </View>
-        <Stack
-          screenOptions={{
-            contentStyle: { backgroundColor: '#0B1120' },
-          }}
-        >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="expense/add" options={{ headerShown: false }} />
-          <Stack.Screen name="budget" options={{ headerShown: false }} />
-        </Stack>
-        <Toast />
-      </SafeAreaProvider>
-    );
-  }
 
   return (
     <SafeAreaProvider style={{ backgroundColor: '#0B1120' }}>

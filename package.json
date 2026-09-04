@@ -10,6 +10,9 @@
     "db:generate": "pnpm --filter @apps/server run db:generate",
     "db:migrate": "pnpm --filter @apps/server run db:migrate",
     "db:studio": "pnpm --filter @apps/server run db:studio",
+    "mobile:update": "node scripts/publish-ota.mjs",
+    "mobile:rollback": "node scripts/rollback-ota.mjs",
+    "ota:generate-keys": "node scripts/generate-ota-keys.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

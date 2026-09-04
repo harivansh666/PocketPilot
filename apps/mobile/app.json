@@ -8,7 +8,8 @@
     "scheme": "mobile",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.anonymous.mobile"
     },
     "android": {
       "adaptiveIcon": {
@@ -51,10 +52,15 @@
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/81474306-0852-41e4-bf4a-3d4cb719373f",
+      "url": "https://pocketpilotapp.vercel.app/api/updates/manifest",
       "enabled": true,
       "fallbackToCacheTimeout": 0,
-      "channel": "preview"
+      "checkAutomatically": "ON_LOAD",
+      "codeSigningCertificate": "./certs/certificate.pem",
+      "codeSigningMetadata": {
+        "keyid": "main",
+        "alg": "rsa-v1_5-sha256"
+      }
     }
   }
 }
